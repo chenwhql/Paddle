@@ -68,6 +68,7 @@ option(WITH_BRPC_RDMA     "Use brpc rdma as the rpc protocal"           OFF)
 option(WITH_INFERENCE    "Compile fluid inference library"              ON)
 option(WITH_SYSTEM_BLAS   "Use system blas library"           OFF)
 option(PY_VERSION       "Compile PaddlePaddle with python3 support"     ${PY_VERSION})
+option(USER_ERROR_INFO  "Compile PaddlePaddle with user-friendly error info"    OFF)
 
 # PY_VERSION
 if(NOT PY_VERSION)

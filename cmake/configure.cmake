@@ -186,3 +186,7 @@ endif(WITH_GRPC)
 if(WITH_BRPC_RDMA)
     add_definitions(-DPADDLE_WITH_BRPC_RDMA)
 endif(WITH_BRPC_RDMA)
+
+if(USER_ERROR_INFO)
+    add_definitions(-DPADDLE_USER_ERROR_INFO)
+endif(USER_ERROR_INFO)

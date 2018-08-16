@@ -67,13 +67,16 @@ struct EnforceNotMet : public std::exception {
   std::exception_ptr exp_;
   std::string err_str_;
   EnforceNotMet(std::exception_ptr e, const char* f, int l) : exp_(e) {
-    static constexpr int TRACE_STACK_LIMIT = 100;
     try {
       std::rethrow_exception(exp_);
     } catch (const std::exception& exp) {
       std::ostringstream sout;
 
       sout << string::Sprintf("%s at [%s:%d]", exp.what(), f, l) << std::endl;
+#ifdef PADDLE_USER_ERROR_INFO
+
+#else
+      static constexpr int TRACE_STACK_LIMIT = 100;
       sout << "PaddlePaddle Call Stacks: " << std::endl;
 
       void* call_stack[TRACE_STACK_LIMIT];
@@ -95,6 +98,7 @@ struct EnforceNotMet : public std::exception {
         }
       }
       free(symbols);
+#endif
       err_str_ = sout.str();
     }
   }
