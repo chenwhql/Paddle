@@ -13,6 +13,7 @@
    limitations under the License. */
 
 #pragma once
+#include <atomic>
 #include <memory>
 #include <thread>  // NOLINT
 
@@ -45,6 +46,31 @@ class ThreadUnsafeOwnershipFlags {
   bool flag_;
 };
 
+// Thread safe flags
+class ThreadSafeOwnershipFlags {
+ public:
+  explicit ThreadSafeOwnershipFlags(bool flag) : flag_(flag) {}
+
+  ThreadSafeOwnershipFlags(const ThreadSafeOwnershipFlags& other) = delete;
+  ThreadSafeOwnershipFlags& operator=(const ThreadSafeOwnershipFlags& other) =
+      delete;
+  ThreadSafeOwnershipFlags(ThreadSafeOwnershipFlags&& other) = default;
+
+  void SetOwnership(bool flag) { flag_ = flag; }
+
+  // Invoke the callback if it is not owned.
+  template <typename Callback>
+  void AcquireOwnershipOnce(Callback acquire) {
+    if (!flag_) {
+      acquire();
+      flag_ = true;
+    }
+  }
+
+ private:
+  std::atomic<bool> flag_;
+};
+
 // Copy-On-Write pointer.
 // It will hold a T* pointer, and only copy once when `MutableData` is invoked.
 //
@@ -55,9 +81,10 @@ class ThreadUnsafeOwnershipFlags {
 //     owned.
 //
 // https://en.wikipedia.org/wiki/Copy-on-write
-template <typename T, typename OwnershipFlags = ThreadUnsafeOwnershipFlags>
+template <typename T, typename OwnershipFlags = ThreadSafeOwnershipFlags>
 class COWPtr {
  public:
+  COWPtr() : ownership_(true) {}
   // Ctor from raw pointer.
   explicit COWPtr(T* ptr) : payload_(ptr), ownership_{true} {}
 

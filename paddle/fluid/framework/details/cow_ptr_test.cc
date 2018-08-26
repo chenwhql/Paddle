@@ -28,6 +28,9 @@ TEST(COWPtr, all) {
   *ptr2.MutableData() = 10;
   ASSERT_EQ(ptr.Data(), 0);
   ASSERT_EQ(ptr2.Data(), 10);
+  *ptr.MutableData() = 20;
+  ASSERT_EQ(ptr.Data(), 20);
+  ASSERT_EQ(ptr2.Data(), 10);
 }
 
 }  // namespace details

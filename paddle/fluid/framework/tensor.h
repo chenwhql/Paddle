@@ -22,6 +22,7 @@ limitations under the License. */
 
 #include "paddle/fluid/framework/data_layout.h"
 #include "paddle/fluid/framework/ddim.h"
+#include "paddle/fluid/framework/details/cow_ptr.h"
 #include "paddle/fluid/memory/memory.h"
 #include "paddle/fluid/platform/device_context.h"
 #include "paddle/fluid/platform/enforce.h"
@@ -178,6 +179,17 @@ class Tensor {
                               (is_cpu_place(place_) ? "CPU" : "GPU"));
     }
 
+    PlaceholderImpl(const PlaceholderImpl& orig)
+        : ptr_(static_cast<uint8_t*>(memory::Alloc(orig.place_, orig.size_)),
+               memory::PODDeleter<uint8_t, Place>(orig.place_)),
+          place_(orig.place_),
+          size_(orig.size_),
+          type_(orig.type_) {
+      PADDLE_ENFORCE_NOT_NULL(ptr_, "Insufficient %s memory to allocation.",
+                              (is_cpu_place(place_) ? "CPU" : "GPU"));
+      memory::Copy(place_, ptr_, orig.place_, orig.ptr_, size_);
+    }
+
     virtual size_t size() const { return size_; }
     virtual platform::Place place() const { return place_; }
     virtual void* ptr() const { return static_cast<void*>(ptr_.get()); }
@@ -200,6 +212,10 @@ class Tensor {
 
   /*! holds the memory block if allocated. */
   std::shared_ptr<Placeholder> holder_;
+
+  /* Copy on write control */
+  // paddle::framework::details::COWPtr<Placeholder>
+  // cow_holder_(holder_->get());
 
   /**
    * @brief points to elements dimensions.
