@@ -17,6 +17,7 @@ limitations under the License. */
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <mutex>  // NOLINT
 #include <typeindex>
 #include <vector>
 
@@ -164,6 +165,8 @@ class Tensor {
     virtual platform::Place place() const = 0;
     virtual void set_type(std::type_index type) = 0;
     virtual void set_place(platform::Place place) = 0;
+    virtual std::unique_ptr<Placeholder> Clone(
+        const platform::Place& place) const = 0;
   };
 
   template <typename Place>
@@ -184,6 +187,32 @@ class Tensor {
     virtual std::type_index type() const { return type_; }
     virtual void set_type(std::type_index type) { type_ = type; }
     virtual void set_place(platform::Place place) { place_ = place; }
+    virtual std::unique_ptr<Placeholder> Clone(
+        const platform::Place& place) const {
+      std::lock_guard<std::mutex> lock(mutex_);
+      std::unique_ptr<Placeholder> result;
+      if (platform::is_cpu_place(place)) {
+        result.reset(new PlaceholderImpl<platform::CPUPlace>(
+            boost::get<platform::CPUPlace>(place), size_, type_));
+      } else if (platform::is_gpu_place(place) ||
+                 platform::is_cuda_pinned_place(place)) {
+#ifndef PADDLE_WITH_CUDA
+        PADDLE_THROW(
+            "CUDAPlace or CUDAPinnedPlace is not supported in CPU-only mode.");
+      }
+#else
+        if (platform::is_gpu_place(place)) {
+          result.reset(new PlaceholderImpl<platform::CUDAPlace>(
+              boost::get<platform::CUDAPlace>(place), size_, type_));
+        } else if (platform::is_cuda_pinned_place(place)) {
+          result.reset(new PlaceholderImpl<platform::CUDAPinnedPlace>(
+              boost::get<platform::CUDAPinnedPlace>(place), size_, type_));
+        }
+        memory::Copy(result->place(), result->ptr(), place_, ptr_.get(), size_);
+      }
+#endif
+      return result;
+    }
 
     /*! the pointer of memory block. */
     std::unique_ptr<uint8_t, memory::PODDeleter<uint8_t, Place>> ptr_;
@@ -196,6 +225,9 @@ class Tensor {
 
     /* the current type of memory */
     std::type_index type_;
+
+    /* mutex lock */
+    mutable std::mutex mutex_;
   };
 
   /*! holds the memory block if allocated. */
