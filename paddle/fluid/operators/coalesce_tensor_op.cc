@@ -166,7 +166,7 @@ class AllocContinuousSpaceOpMaker : public framework::OpProtoAndCheckerMaker {
               " Output is sliced from the tensor of FusedOutput.");
     AddAttr<int>("dtype", "The output data type.");
     AddAttr<bool>("copy_data", "Whether to copy the Input value to Output.")
-        .SetDefault(false);
+        .SetDefault(true);
     AddAttr<bool>("set_constant",
                   "Whether to set the Output with a constant value.")
         .SetDefault(false);

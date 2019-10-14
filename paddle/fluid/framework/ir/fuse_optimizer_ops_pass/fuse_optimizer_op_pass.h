@@ -61,23 +61,38 @@ class FuseOptimizerOpPass : public ir::Pass {
       std::unordered_map<std::string, std::vector<std::string>> *aux_args_name)
       const;
 
-  void AppendAllocContinuousSpace(const std::vector<std::string> &in_args,
-                                  const std::vector<std::string> &out_args,
-                                  const std::string &fused_out_arg,
-                                  const proto::VarType::Type &dtype,
-                                  BlockDesc *global_block, bool copy_data,
-                                  bool check_name = true) const;
+  void RecordGradient(
+      const std::vector<std::string> &grad_var_names,
+      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+      ir::Graph *result) const;
 
-  void InitFusedGradsAndAllocSpaceForGrads(
-      const std::vector<std::string> &params,
-      const std::vector<std::string> &grads, const std::string &fused_grad_name,
-      const proto::VarType::Type &dtype, ir::Graph *result) const;
+  OpDesc *CreateCoalesceTensorOp(const std::vector<std::string> &inout_args,
+                                 const std::string &fused_out_arg,
+                                 const proto::VarType::Type &dtype,
+                                 BlockDesc *current_block) const;
 
-  void InitFusedVarsAndAllocSpaceForVars(
-      const std::vector<std::string> &aux_var_names,
+  std::vector<ir::Node *> GetVarNodesByName(
+      const std::vector<std::string> &var_names,
+      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info)
+      const;
+
+  void InsertCoalesceTensorOpToGraph(
+      const std::vector<ir::Node *> &in_var_nodes,
+      OpDesc *coalesce_tensor_op_desc, ir::Node *fused_opt_node,
+      ir::Graph *result) const;
+
+  void FuseGradVarToContinuousSpace(
+      const std::vector<std::string> &grad_var_names,
+      const std::string &fused_grad_var_name,
+      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+      const proto::VarType::Type &dtype, BlockDesc *current_block,
+      ir::Node *fused_opt_node, ir::Graph *result) const;
+
+  void FuseVarsToContinuousSpaceAndInitVars(
+      const std::vector<std::string> &vars,
       const std::unordered_map<std::string, std::vector<std::string>>
-          &aux_var_set,
-      const std::unordered_map<std::string, std::string> &fused_vars_name,
+          &vars_name_map,
+      const std::unordered_map<std::string, std::string> &fused_vars_name_map,
       const proto::VarType::Type &dtype, ir::Graph *result) const;
 
   std::unordered_map<std::string, std::vector<Node *>> GetVarInfo(

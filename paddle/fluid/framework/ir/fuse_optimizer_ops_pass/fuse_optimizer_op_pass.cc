@@ -170,27 +170,152 @@ void FuseOptimizerOpPass::ApplyImpl(ir::Graph *graph) const {
     }
   }
 
-  // Step 4: Alloc continuous space for Parameters and AuxiliaryVar(e.g.
-  // Moment1, Moment2, Beta1Pow, Beta2Pow) of all the optimizer ops
-  // separately.
-  if (!grad_fused) {
-    InitFusedGradsAndAllocSpaceForGrads(
-        aux_var_set.at(kParam), aux_var_set.at(kGrad),
-        fused_vars_name.at(kGrad), dtype, &result);
-  }
-  aux_var_names.pop_back();
-  InitFusedVarsAndAllocSpaceForVars(aux_var_names, aux_var_set, fused_vars_name,
-                                    dtype, &result);
-
-  // Step 5: Fuse optimizer Ops and Scale Ops
+  // Step 4: Fuse optimizer Ops and Scale Ops
   auto *fused_opt_node =
       FuseOptimizerOps(aux_var_set, fused_vars_name, opt_nodes, &result);
 
+  // Step 5: Insert fused optimzier into graph
   InsertInputAndOutputForFusedOpNode(opt_nodes, graph, fused_opt_node);
-  // Step 6: Remove optimizer Ops
+
+  // Step 6: Alloc continuous space for Parameters and AuxiliaryVar(e.g.
+  // Moment1, Moment2, Beta1Pow, Beta2Pow) of all the optimizer ops
+  // separately and insert coalesce tensor op into graph
+  BlockDesc *current_block = opt_nodes[0]->Op()->Block();
+  if (!grad_fused) {
+    FuseGradVarToContinuousSpace(aux_var_set.at(kGrad),
+                                 fused_vars_name.at(kGrad), vars_info, dtype,
+                                 current_block, fused_opt_node, &result);
+  }
+  aux_var_names.pop_back();
+  FuseVarsToContinuousSpaceAndInitVars(aux_var_names, aux_var_set,
+                                       fused_vars_name, dtype, &result);
+
+  // Step 7: Remove optimizer Ops
   for (auto &opt_op : opt_nodes) {
     graph->RemoveNode(opt_op);
   }
+}
+
+void FuseOptimizerOpPass::RecordGradient(
+    const std::vector<std::string> &grad_var_names,
+    const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+    ir::Graph *result) const {
+  auto &pinned_var_set =
+      result->GetOrInit<details::PinnedVars>(details::kPinnedVars);
+  // The Gradients should not be reused during memory optimization.
+  for (auto &var_name : grad_var_names) {
+    auto iter = vars_info.find(var_name);
+    PADDLE_ENFORCE_EQ(iter != vars_info.end(), true,
+                      "The Variable %s is not defined in program.", var_name);
+    PADDLE_ENFORCE_NOT_NULL(iter->second.front()->Var(),
+                            "The Variable %s is invalid.");
+    PADDLE_ENFORCE_EQ(
+        IsLoDTensorType(iter->second.front()->Var()->GetType()), true,
+        "Currently only support fuse gradients of LoDTensor type when "
+        "fusing optimizer ops.");
+    for (auto var : iter->second) {
+      pinned_var_set.insert(var->Var()->Name());
+    }
+  }
+}
+
+OpDesc *FuseOptimizerOpPass::CreateCoalesceTensorOp(
+    const std::vector<std::string> &inout_args,
+    const std::string &fused_out_arg, const proto::VarType::Type &dtype,
+    BlockDesc *target_block) const {
+  auto coalesce_tensor_desc = target_block->AppendOp();
+  coalesce_tensor_desc->SetType("coalesce_tensor");
+  coalesce_tensor_desc->SetInput("Input", inout_args);
+  coalesce_tensor_desc->SetOutput("Output", inout_args);
+  coalesce_tensor_desc->SetOutput("FusedOutput", {fused_out_arg});
+  coalesce_tensor_desc->SetAttr("check_name", true);
+  coalesce_tensor_desc->SetAttr("dtype", static_cast<int>(dtype));
+  // NOTE: multi_devices_pass requires that every op should have a role.
+  coalesce_tensor_desc->SetAttr(OpProtoAndCheckerMaker::OpRoleAttrName(),
+                                static_cast<int>(OpRole::kBackward));
+  return coalesce_tensor_desc;
+}
+
+std::vector<ir::Node *> FuseOptimizerOpPass::GetVarNodesByName(
+    const std::vector<std::string> &var_names,
+    const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info)
+    const {
+  std::vector<ir::Node *> var_nodes;
+  for (auto &var_name : var_names) {
+    auto iter = vars_info.find(var_name);
+    PADDLE_ENFORCE_EQ(iter != vars_info.end(), true,
+                      "The Variable %s is not defined in program.", var_name);
+    for (auto var : iter->second) {
+      var_nodes.emplace_back(var);
+    }
+  }
+  return var_nodes;
+}
+
+void FuseOptimizerOpPass::InsertCoalesceTensorOpToGraph(
+    const std::vector<ir::Node *> &in_var_nodes,
+    OpDesc *coalesce_tensor_op_desc, ir::Node *fused_opt_node,
+    ir::Graph *result) const {
+  // create node
+  auto coalesce_tensor_op_node = result->CreateOpNode(coalesce_tensor_op_desc);
+  // set inputs
+  for (auto in_var_node : in_var_nodes) {
+    in_var_node->outputs.emplace_back(coalesce_tensor_op_node);
+    coalesce_tensor_op_node->inputs.emplace_back(in_var_node);
+  }
+  // set ouputs, insert ctrl var node
+  ir::Node *dep_var = result->CreateControlDepVar();
+  VLOG(6) << "Insert dep_var between " << coalesce_tensor_op_node->Op()->Type()
+          << " and" << fused_opt_node->Op()->Type();
+  coalesce_tensor_op_node->outputs.emplace_back(dep_var);
+  fused_opt_node->inputs.emplace_back(dep_var);
+  dep_var->inputs.emplace_back(coalesce_tensor_op_node);
+  dep_var->outputs.emplace_back(fused_opt_node);
+}
+
+void FuseOptimizerOpPass::FuseGradVarToContinuousSpace(
+    const std::vector<std::string> &grad_var_names,
+    const std::string &fused_grad_var_name,
+    const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+    const proto::VarType::Type &dtype, BlockDesc *current_block,
+    ir::Node *fused_opt_node, ir::Graph *result) const {
+  RecordGradient(grad_var_names, vars_info, result);
+  auto *coalesce_tensor_op_desc = CreateCoalesceTensorOp(
+      grad_var_names, fused_grad_var_name, dtype, current_block);
+  auto grad_var_nodes = GetVarNodesByName(grad_var_names, vars_info);
+  InsertCoalesceTensorOpToGraph(grad_var_nodes, coalesce_tensor_op_desc,
+                                fused_opt_node, result);
+}
+
+void FuseOptimizerOpPass::FuseVarsToContinuousSpaceAndInitVars(
+    const std::vector<std::string> &vars,
+    const std::unordered_map<std::string, std::vector<std::string>>
+        &vars_name_map,
+    const std::unordered_map<std::string, std::string> &fused_vars_name_map,
+    const proto::VarType::Type &dtype, ir::Graph *result) const {
+  // add a tempory programdesc
+  result->Get<details::ProgramDescs>(details::kProgramDescs).emplace_back();
+  ProgramDesc &program_desc =
+      result->Get<details::ProgramDescs>(details::kProgramDescs).back();
+  auto *tmp_global_block = program_desc.MutableBlock(0);
+  // fuse vars
+  for (auto &var : vars) {
+    CreateCoalesceTensorOp(vars_name_map.at(var), fused_vars_name_map.at(var),
+                           dtype, tmp_global_block);
+  }
+}
+
+std::unordered_map<std::string, std::vector<Node *>>
+FuseOptimizerOpPass::GetVarInfo(const Graph &result) const {
+  std::unordered_map<std::string, std::vector<Node *>> vars;
+  for (Node *node : result.Nodes()) {
+    if (node->IsVar() && node->Var()) {
+      // Note: The graph may have the same name node. For example, parameter
+      // is the input of operator and it also is the output of optimizer;
+      vars[node->Var()->Name()].emplace_back(node);
+    }
+  }
+  return vars;
 }
 
 bool FuseOptimizerOpPass::HasVarDepsBetweenOps(
@@ -257,53 +382,6 @@ void FuseOptimizerOpPass::GradientsFilter(
   std::swap(*opt_nodes, sorted_ops);
 }
 
-void FuseOptimizerOpPass::InitFusedGradsAndAllocSpaceForGrads(
-    const std::vector<std::string> &params,
-    const std::vector<std::string> &grads, const std::string &fused_grad_name,
-    const proto::VarType::Type &dtype, ir::Graph *result) const {
-  auto &pinned_var_set =
-      result->GetOrInit<details::PinnedVars>(details::kPinnedVars);
-
-  auto vars_info = GetVarInfo(*result);
-  // The Gradients should not be reused during memory optimization.
-  for (auto &grad_var_name : grads) {
-    auto iter = vars_info.find(grad_var_name);
-    PADDLE_ENFORCE_EQ(iter != vars_info.end(), true, "%s is not found.",
-                      grad_var_name);
-    PADDLE_ENFORCE_EQ(!iter->second.empty(), true, "%s is not found.",
-                      grad_var_name);
-    PADDLE_ENFORCE_NOT_NULL(iter->second.front()->Var());
-    PADDLE_ENFORCE_EQ(
-        IsLoDTensorType(iter->second.front()->Var()->GetType()), true,
-        "Currently the gradient type only should be LoDTensor when "
-        "fusing optimizer ops.");
-    for (auto var : iter->second) {
-      pinned_var_set.insert(var->Var()->Name());
-    }
-  }
-
-  // Define Ops
-  result->Get<details::ProgramDescs>(details::kProgramDescs).emplace_back();
-  ProgramDesc &program_desc =
-      result->Get<details::ProgramDescs>(details::kProgramDescs).back();
-  auto *global_block = program_desc.MutableBlock(0);
-  AppendAllocContinuousSpace(params, grads, fused_grad_name, dtype,
-                             global_block, false, false);
-}
-
-std::unordered_map<std::string, std::vector<Node *>>
-FuseOptimizerOpPass::GetVarInfo(const Graph &result) const {
-  std::unordered_map<std::string, std::vector<Node *>> vars;
-  for (Node *node : result.Nodes()) {
-    if (node->IsVar() && node->Var()) {
-      // Note: The graph may have the same name node. For example, parameter
-      // is the input of operator and it also is the output of optimizer;
-      vars[node->Var()->Name()].emplace_back(node);
-    }
-  }
-  return vars;
-}
-
 bool FuseOptimizerOpPass::IsLoDTensorType(
     const proto::VarType::Type &type) const {
   // Current only support LOD_TENSOR.
@@ -334,24 +412,6 @@ proto::VarType::Type FuseOptimizerOpPass::GetTypeOfVar(
     const std::string &name) const {
   auto var_desc = GetVarDescFromVarsInfo(vars_info, name);
   return var_desc->GetType();
-}
-
-void FuseOptimizerOpPass::InitFusedVarsAndAllocSpaceForVars(
-    const std::vector<std::string> &aux_var_names,
-    const std::unordered_map<std::string, std::vector<std::string>>
-        &aux_var_set,
-    const std::unordered_map<std::string, std::string> &fused_vars_name,
-    const proto::VarType::Type &dtype, ir::Graph *result) const {
-  // Define Ops
-  result->Get<details::ProgramDescs>(details::kProgramDescs).emplace_back();
-  ProgramDesc &program_desc =
-      result->Get<details::ProgramDescs>(details::kProgramDescs).back();
-  auto *global_block = program_desc.MutableBlock(0);
-  for (auto &var_name : aux_var_names) {
-    AppendAllocContinuousSpace(
-        aux_var_set.at(var_name), aux_var_set.at(var_name),
-        fused_vars_name.at(var_name), dtype, global_block, true);
-  }
 }
 
 void FuseOptimizerOpPass::SortParametersAndAuxVars(
@@ -411,21 +471,6 @@ void FuseOptimizerOpPass::GetSpecifiedOpsAndVars(
       out << var_n << ", " << arg_names[0] << "; ";
     }
   }
-}
-
-void FuseOptimizerOpPass::AppendAllocContinuousSpace(
-    const std::vector<std::string> &in_args,
-    const std::vector<std::string> &out_args, const std::string &fused_out_arg,
-    const proto::VarType::Type &dtype, BlockDesc *global_block, bool copy_data,
-    bool check_name) const {
-  auto op_desc = global_block->AppendOp();
-  op_desc->SetType("coalesce_tensor");
-  op_desc->SetInput("Input", in_args);
-  op_desc->SetOutput("Output", out_args);
-  op_desc->SetOutput("FusedOutput", {fused_out_arg});
-  op_desc->SetAttr("copy_data", copy_data);
-  op_desc->SetAttr("check_name", check_name);
-  op_desc->SetAttr("dtype", static_cast<int>(dtype));
 }
 
 void FuseOptimizerOpPass::InsertInputAndOutputForFusedOpNode(
@@ -507,6 +552,7 @@ void FuseOptimizerOpPass::InsertInputAndOutputForFusedOpNode(
     graph->RemoveNode(ctrl_var_node);
   }
 }
+
 }  // namespace ir
 }  // namespace framework
 }  // namespace paddle
