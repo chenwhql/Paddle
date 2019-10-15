@@ -223,17 +223,17 @@ OpDesc *FuseOptimizerOpPass::CreateCoalesceTensorOp(
     const std::vector<std::string> &inout_args,
     const std::string &fused_out_arg, const proto::VarType::Type &dtype,
     BlockDesc *target_block) const {
-  auto coalesce_tensor_desc = target_block->AppendOp();
-  coalesce_tensor_desc->SetType("coalesce_tensor");
-  coalesce_tensor_desc->SetInput("Input", inout_args);
-  coalesce_tensor_desc->SetOutput("Output", inout_args);
-  coalesce_tensor_desc->SetOutput("FusedOutput", {fused_out_arg});
-  coalesce_tensor_desc->SetAttr("check_name", true);
-  coalesce_tensor_desc->SetAttr("dtype", static_cast<int>(dtype));
+  auto op_desc = target_block->AppendOp();
+  op_desc->SetType("coalesce_tensor");
+  op_desc->SetInput("Input", inout_args);
+  op_desc->SetOutput("Output", inout_args);
+  op_desc->SetOutput("FusedOutput", {fused_out_arg});
+  op_desc->SetAttr("check_name", true);
+  op_desc->SetAttr("dtype", static_cast<int>(dtype));
   // NOTE: multi_devices_pass requires that every op should have a role.
-  coalesce_tensor_desc->SetAttr(OpProtoAndCheckerMaker::OpRoleAttrName(),
-                                static_cast<int>(OpRole::kBackward));
-  return coalesce_tensor_desc;
+  op_desc->SetAttr(OpProtoAndCheckerMaker::OpRoleAttrName(),
+                   static_cast<int>(OpRole::kBackward));
+  return op_desc;
 }
 
 std::vector<ir::Node *> FuseOptimizerOpPass::GetVarNodesByName(

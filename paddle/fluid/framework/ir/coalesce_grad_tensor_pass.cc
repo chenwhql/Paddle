@@ -198,8 +198,8 @@ class CoalesceGradTensorPass : public ir::Pass {
     result->Get<details::FusedGrads>(details::kFusedGrads)
         .emplace_back(fused_grad_var_name);
 
-    InitFusedVarsAndAllocSpaceForVars(vars_info, fused_grad_var_name,
-                                      params_grads, result);
+    FuseGradVarsToContinuousSpace(params_grads, fused_grad_var_name, vars_info,
+                                  result);
   }
 
   template <typename AttrType>
@@ -456,11 +456,65 @@ class CoalesceGradTensorPass : public ir::Pass {
     }
   }
 
-  void InitFusedVarsAndAllocSpaceForVars(
-      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+  std::vector<ir::Node *> GetVarNodesByName(
+      const std::vector<std::string> &var_names,
+      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info)
+      const {
+    std::vector<ir::Node *> var_nodes;
+    for (auto &var_name : var_names) {
+      auto iter = vars_info.find(var_name);
+      PADDLE_ENFORCE_EQ(iter != vars_info.end(), true,
+                        "The Variable %s is not defined in program.", var_name);
+      for (auto var : iter->second) {
+        var_nodes.emplace_back(var);
+      }
+    }
+    return var_nodes;
+  }
+
+  ir::Node *CreateCoalesceTensorOpNode(
+      const std::vector<std::string> &grads_name,
+      const std::string &fused_var_name, const proto::VarType::Type &dtype,
+      BlockDesc *target_block, ir::Graph *result) const {
+    auto op_desc = target_block->AppendOp();
+    op_desc->SetType("coalesce_tensor");
+    op_desc->SetInput("Input", grads_name);
+    op_desc->SetOutput("Output", grads_name);
+    op_desc->SetOutput("FusedOutput", {fused_var_name});
+    op_desc->SetAttr("dtype", static_cast<int>(dtype));
+    // NOTE: multi_devices_pass requires that every op should have a role.
+    op_desc->SetAttr(OpProtoAndCheckerMaker::OpRoleAttrName(),
+                     static_cast<int>(OpRole::kBackward));
+    return result->CreateOpNode(op_desc);
+  }
+
+  void InsertCoalesceTensorOpToGraph(
+      const std::vector<ir::Node *> &in_var_nodes,
+      ir::Node *coalesce_tensor_op_node, ir::Graph *result) const {
+    for (auto in_var_node : in_var_nodes) {
+      // set outpus
+      for (auto out_op_node : in_var_node->outputs) {
+        ir::Node *dep_var = result->CreateControlDepVar();
+        VLOG(6) << "Insert dep_var between "
+                << coalesce_tensor_op_node->Op()->Type() << " and "
+                << out_op_node->Op()->Type();
+        coalesce_tensor_op_node->outputs.emplace_back(dep_var);
+        out_op_node->inputs.emplace_back(dep_var);
+        dep_var->inputs.emplace_back(coalesce_tensor_op_node);
+        dep_var->outputs.emplace_back(out_op_node);
+      }
+      // set inputs
+      in_var_node->outputs.emplace_back(coalesce_tensor_op_node);
+      coalesce_tensor_op_node->inputs.emplace_back(in_var_node);
+    }
+  }
+
+  void FuseGradVarsToContinuousSpace(
+      const details::ParamsAndGrads &params_grads,
       const std::string &fused_var_name,
-      const details::ParamsAndGrads &params_grads, ir::Graph *result) const {
-    // Alloc continuous space for vars.
+      const std::unordered_map<std::string, std::vector<ir::Node *>> &vars_info,
+      ir::Graph *result) const {
+    // Step 1. Get grad variable name set
     std::vector<std::string> grads_name;
     std::vector<std::string> params_name;
     grads_name.reserve(params_grads.size());
@@ -471,28 +525,21 @@ class CoalesceGradTensorPass : public ir::Pass {
       params_name.emplace_back(p_g.first);
       grads_name.emplace_back(p_g.second);
       auto next_dtype = GetDtypeOfVar(vars_info, p_g.second);
-      PADDLE_ENFORCE_EQ(next_dtype, dtype);
+      PADDLE_ENFORCE_EQ(next_dtype, dtype,
+                        "The fused gradient variable's dtypes are different.");
     }
 
-    result->Get<details::ProgramDescs>(details::kProgramDescs).emplace_back();
-    ProgramDesc &program_desc =
-        result->Get<details::ProgramDescs>(details::kProgramDescs).back();
-    auto *global_block = program_desc.MutableBlock(0);
-    AppendAllocSpaceForVarsOp(params_name, grads_name, fused_var_name, dtype,
-                              global_block);
-  }
+    // Step 2. Get grad variable nodes
+    auto grad_var_nodes = GetVarNodesByName(grads_name, vars_info);
 
-  void AppendAllocSpaceForVarsOp(const std::vector<std::string> &params_name,
-                                 const std::vector<std::string> &grads_name,
-                                 const std::string &fused_var_name,
-                                 const proto::VarType::Type &dtype,
-                                 BlockDesc *global_block) const {
-    auto op_desc = global_block->AppendOp();
-    op_desc->SetType("coalesce_tensor");
-    op_desc->SetInput("Input", params_name);
-    op_desc->SetOutput("Output", grads_name);
-    op_desc->SetOutput("FusedOutput", {fused_var_name});
-    op_desc->SetAttr("dtype", static_cast<int>(dtype));
+    // Step 3. Create coalesce tensor op node
+    auto global_block = grad_var_nodes.at(0)->inputs.at(0)->Op()->Block();
+    auto *coalesce_tensor_op_node = CreateCoalesceTensorOpNode(
+        grads_name, fused_var_name, dtype, global_block, result);
+
+    // Step 4. Insert coalesce tensor op into graph
+    InsertCoalesceTensorOpToGraph(grad_var_nodes, coalesce_tensor_op_node,
+                                  result);
   }
 };
 }  // namespace ir
