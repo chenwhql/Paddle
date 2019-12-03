@@ -36,7 +36,7 @@ class AllReduceOp : public framework::OperatorWithKernel {
 
 class AllReduceOpMaker : public framework::OpProtoAndCheckerMaker {
  public:
-  void Make() {
+  void Make() override {
     AddInput("X", "(Tensor), tensor to be allreduced.");
     AddOutput("Out", "(Tensor) the result of allreduced.");
     AddAttr<int>("reduce_type", "(int) determin the reduce type.")
@@ -45,6 +45,10 @@ class AllReduceOpMaker : public framework::OpProtoAndCheckerMaker {
         "sync_mode",
         "(bool) whether to synchronize the CUDA stream after nccl call.")
         .SetDefault(false);
+    AddAttr<std::vector<std::string>>(
+        "trainer_endpoints", "(std::vector<std::string>) trainer endpoints.")
+        .SetDefault({});
+    AddAttr<int>("trainer_id", "(int) trainer id.").SetDefault(0);
     AddComment(R"DOC(
 ***AllReduce Operator***
 

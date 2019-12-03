@@ -220,14 +220,33 @@ class DataParallel(layers.Layer):
         for param in self._layers.parameters():
             # NOTE(zcd): The grad_ivar maybe no generated.
             if param.trainable and param._ivar._grad_ivar():
-                g_var = framework.Variable(
-                    block=self._helper.main_program.current_block(),
-                    name=param._ivar._grad_name(),
-                    stop_gradient=True,
-                    ivar=param._ivar._grad_ivar())
-                grad_vars.append(g_var)
-                assert g_var not in grad_var_set
-                grad_var_set.add(g_var)
+                grad_ivar = param._ivar._grad_ivar()
+                print("grad_ivar name: ")
+                print(grad_ivar.name)
+                print("grad_ivar type: ")
+                print(grad_ivar.type)
+                if grad_ivar.type == core.VarDesc.VarType.LOD_TENSOR:
+                    g_var = framework.Variable(
+                        block=self._helper.main_program.current_block(),
+                        name=param._ivar._grad_name(),
+                        stop_gradient=True,
+                        ivar=param._ivar._grad_ivar())
+                    grad_vars.append(g_var)
+                    assert g_var not in grad_var_set
+                    grad_var_set.add(g_var)
+                elif grad_ivar.type == core.VarDesc.VarType.SELECTED_ROWS:
+                    g_var_sr = framework.Variable(
+                        block=self._helper.main_program.current_block(),
+                        type=core.VarDesc.VarType.SELECTED_ROWS,
+                        name=param._ivar._grad_name(),
+                        stop_gradient=True,
+                        ivar=param._ivar._grad_ivar())
+                    collective._allreduce(
+                        g_var_sr,
+                        g_var_sr,
+                        sync_mode=True,
+                        trainer_endpoints=self._strategy.trainer_endpoints,
+                        trainer_id=self._strategy.local_rank)
 
         # FIXME(zcd): the type of the var should be LoDTensor, i.e
         # the gradients should be dense, otherwise, the following

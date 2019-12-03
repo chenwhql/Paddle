@@ -17,7 +17,12 @@ from ..layer_helper import LayerHelper, unique_name
 from ..framework import Variable
 
 
-def _allreduce(x, out=None, reduce_type="sum", sync_mode=False):
+def _allreduce(x,
+               out=None,
+               reduce_type="sum",
+               sync_mode=False,
+               trainer_endpoints=None,
+               trainer_id=None):
     helper = LayerHelper("allreduce", **locals())
     # Convert string reduce type to op int type
     red_typ_int = 0
@@ -45,8 +50,12 @@ def _allreduce(x, out=None, reduce_type="sum", sync_mode=False):
         type='allreduce',
         inputs={'X': [x]},
         outputs={'Out': [out]},
-        attrs={"reduce_type": red_typ_int,
-               "sync_mode": sync_mode})
+        attrs={
+            "reduce_type": red_typ_int,
+            "sync_mode": sync_mode,
+            "trainer_endpoints": trainer_endpoints,
+            "trainer_id": trainer_id
+        })
     return out
 
 
