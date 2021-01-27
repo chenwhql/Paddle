@@ -31,6 +31,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/op_registry.h"
 #include "paddle/fluid/framework/operator.h"
 #include "paddle/fluid/framework/tensor.h"
+#include "paddle/fluid/platform/dynload/dynamic_loader.h"
 
 namespace paddle {
 namespace framework {
