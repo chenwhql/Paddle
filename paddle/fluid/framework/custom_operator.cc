@@ -279,10 +279,10 @@ void LoadCustomOperator(const std::string& dso_name) {
     // 2. register op
     RegisterOperator(pair.first, forward_in_num);
     // 3. register op kernel
-    RegisterOperatorKernel<std::function<std::vector<Tensor>(const Tensor&)>>(
+    RegisterOperatorKernel<std::function<std::vector<CustomTensor>(const CustomTensor&)>>(
         pair.first, &forward_func);
-    RegisterOperatorKernel<std::function<std::vector<Tensor>(
-        const Tensor&, const Tensor&, const Tensor&)>>(pair.first + "_grad",
+    RegisterOperatorKernel<std::function<std::vector<CustomTensor>(
+        const CustomTensor&, const CustomTensor&, const CustomTensor&)>>(pair.first + "_grad",
                                                        &backward_func);
   }
 }
