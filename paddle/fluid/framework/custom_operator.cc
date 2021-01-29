@@ -32,6 +32,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/operator.h"
 #include "paddle/fluid/framework/tensor.h"
 #include "paddle/fluid/platform/dynload/dynamic_loader.h"
+#include "paddle/fluid/extension/include/tensor.h"
 
 namespace paddle {
 namespace framework {
@@ -60,30 +61,31 @@ template <typename Func>
 static void CallKernelFunc(const framework::ExecutionContext& ctx, Func&& func);
 
 template <>
-void CallKernelFunc<const std::function<std::vector<Tensor>(const Tensor&)>&>(
+void CallKernelFunc<const std::function<std::vector<CustomTensor>(const CustomTensor&)>&>(
     const framework::ExecutionContext& ctx,
-    const std::function<std::vector<Tensor>(const Tensor&)>& func) {
+    const std::function<std::vector<CustomTensor>(const CustomTensor&)>& func) {
   VLOG(0) << "start run in CallKernelFunc";
-  auto* x = ctx.Input<Tensor>(detail::kCustomOpInputPrefix + std::to_string(0));
+  const Tensor* x = ctx.Input<Tensor>(detail::kCustomOpInputPrefix + std::to_string(0));
   PADDLE_ENFORCE_NOT_NULL(x, "input x is nullptr.");
   PADDLE_ENFORCE(x->IsInitialized(), "input x is not initialized.");
-
+  CustomTensor ct = CustomTensor((void *) x);
+  VLOG(0) << "Get ZeroCopyTensor in";
   VLOG(0) << "run forward func in CallKernelFunc";
-  auto outs = func(*x);
+  auto outs = func(ct);
 
   VLOG(0) << "share output in CallKernelFunc";
   auto true_outs = ctx.MultiOutput<Tensor>(detail::kCustomOpOutputPrefix);
   for (size_t i = 0; i < true_outs.size(); ++i) {
-    (true_outs)[i]->ShareDataWith(outs.at(i));
+    outs.at(i).ShareDataWith((true_outs)[i]);
   }
 }
 
 template <>
 void CallKernelFunc<const std::function<
-    std::vector<Tensor>(const Tensor&, const Tensor&, const Tensor&)>&>(
+    std::vector<CustomTensor>(const CustomTensor&, const CustomTensor&, const CustomTensor&)>&>(
     const framework::ExecutionContext& ctx,
-    const std::function<std::vector<Tensor>(const Tensor&, const Tensor&,
-                                            const Tensor&)>& func) {
+    const std::function<std::vector<CustomTensor>(const CustomTensor&, const CustomTensor&,
+                                            const CustomTensor&)>& func) {
   std::vector<const Tensor*> ins;
   for (auto name : ctx.InNameList()) {
     VLOG(0) << "input name: " << name;
@@ -94,14 +96,17 @@ void CallKernelFunc<const std::function<
   }
 
   VLOG(0) << "run forward func in CallKernelFunc";
-  auto outs = func(*ins[0], *ins[1], *ins[2]);
+  CustomTensor ct1 = CustomTensor((void*)ins[0]);
+  CustomTensor ct2 = CustomTensor((void*)ins[1]);
+  CustomTensor ct3 = CustomTensor((void*)ins[2]);
+  auto outs = func(ct1, ct2, ct3);
 
   VLOG(0) << "share output in CallKernelFunc";
   auto out_names = ctx.OutNameList();
   PADDLE_ENFORCE_EQ(out_names.size(), 1, "only can hold 1 out in custom op.");
   auto true_outs = ctx.MultiOutput<Tensor>(out_names[0]);
   for (size_t i = 0; i < true_outs.size(); ++i) {
-    (true_outs)[i]->ShareDataWith(outs.at(i));
+      outs.at(i).ShareDataWith((true_outs)[i]);
   }
 }
 

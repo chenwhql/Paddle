@@ -14,12 +14,8 @@ limitations under the License. */
 
 #pragma once
 
-#include "paddle/fluid/platform/place.h"
-
 namespace paddle {
 
-using CPUPlace = platform::CPUPlace;
-using CUDAPlace = platform::CUDAPlace;
-using XPUPlace = platform::XPUPlace;
+enum class PaddlePlace { kUNK = -1, kCPU, kGPU };
 
 }  // namespace paddle

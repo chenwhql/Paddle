@@ -14,11 +14,78 @@ limitations under the License. */
 
 #pragma once
 
-#include "paddle/fluid/framework/tensor.h"
-#include "paddle/fluid/framework/tensor_util.h"
+#include "paddle/fluid/extension/include/device.h"
+#include "paddle/fluid/extension/include/dtype.h"
 
 namespace paddle {
 
-using Tensor = framework::Tensor;
+class CustomTensor{
+public:
+    explicit CustomTensor(void* raw_tensor) : tensor_{raw_tensor}{};
+    /// \brief Reset the shape of the tensor.
+    /// Generally it's only used for the input tensor.
+    /// Reshape must be called before calling mutable_data() or copy_from_cpu()
+    /// \param shape The shape to set.
+    void Reshape(const std::vector<int>& shape);
+
+    /// \brief Get the memory pointer in CPU or GPU with specific data type.
+    /// Please Reshape the tensor first before call this.
+    /// It's usually used to get input data pointer.
+    /// \param place The place of the tensor.
+    template <typename T>
+    T* mutable_data(PaddlePlace place);
+
+    /// \brief Get the memory pointer directly.
+    /// It's usually used to get the output data pointer.
+    /// \param[out] place To get the device type of the tensor.
+    /// \param[out] size To get the data size of the tensor.
+    /// \return The tensor data buffer pointer.
+    template <typename T>
+    T* data(PaddlePlace* place, int* size) const;
+
+    /// \brief Copy the host memory to tensor data.
+    /// It's usually used to set the input tensor data.
+    /// \param data The pointer of the data, from which the tensor will copy.
+    template <typename T>
+    void copy_from_cpu(const T* data);
+
+    /// \brief Copy the tensor data to the host memory.
+    /// It's usually used to get the output tensor data.
+    /// \param[out] data The tensor will copy the data to the address.
+    template <typename T>
+    void copy_to_cpu(T* data);
+
+    /// \brief Return the shape of the Tensor.
+    std::vector<int> shape() const;
+
+    /// \brief Set lod info of the tensor.
+    /// More about LOD can be seen here:
+    ///  https://www.paddlepaddle.org.cn/documentation/docs/zh/beginners_guide/basic_concept/lod_tensor.html#lodtensor
+    /// \param x the lod info.
+    void SetLoD(const std::vector<std::vector<size_t>>& x);
+    /// \brief Return the lod info of the tensor.
+    std::vector<std::vector<size_t>> lod() const;
+
+    void SetPlace(PaddlePlace place) {
+        place_ = place;
+    }
+
+    /// \brief Return the data type of the tensor.
+    /// It's usually used to get the output tensor data type.
+    /// \return The data type of the tensor.
+    PaddleDType type() const;
+
+
+    /// \brief Share data with another tensor.
+    /// Use this to pass tensor from op to op
+    /// \return void.
+    void ShareDataWith(void* tensor_out);
+
+private:
+    mutable std::shared_ptr<void> tensor_;
+    PaddlePlace place_;
+    PaddleDType dtype_;
+    int device_num_{};
+};
 
 }  // namespace paddle
