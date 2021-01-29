@@ -21,7 +21,7 @@ namespace paddle {
 
 class CustomTensor{
 public:
-    explicit CustomTensor(void* raw_tensor) : tensor_{raw_tensor}{};
+    explicit CustomTensor(void* raw_tensor);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
     /// Reshape must be called before calling mutable_data() or copy_from_cpu()

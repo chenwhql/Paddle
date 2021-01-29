@@ -30,6 +30,7 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     tensor->Resize(framework::make_ddim(shape));
 }
 
+CustomTensor::CustomTensor(void* raw_tensor) : tensor_(static_cast<framework::LoDTensor*>(raw_tensor)){}
 
 template <typename T>
 T *CustomTensor::mutable_data(PaddlePlace place) {
