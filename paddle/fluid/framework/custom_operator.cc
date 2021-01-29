@@ -68,7 +68,9 @@ void CallKernelFunc<const std::function<std::vector<CustomTensor>(const CustomTe
   const Tensor* x = ctx.Input<Tensor>(detail::kCustomOpInputPrefix + std::to_string(0));
   PADDLE_ENFORCE_NOT_NULL(x, "input x is nullptr.");
   PADDLE_ENFORCE(x->IsInitialized(), "input x is not initialized.");
-  CustomTensor ct = CustomTensor((void *) x);
+  auto custom_use_input = framework::Tensor();
+  custom_use_input.ShareDataWith(*x);
+  CustomTensor ct = CustomTensor((void *) (&custom_use_input));
   VLOG(0) << "Get ZeroCopyTensor in";
   VLOG(0) << "run forward func in CallKernelFunc";
   auto outs = func(ct);
@@ -86,19 +88,24 @@ void CallKernelFunc<const std::function<
     const framework::ExecutionContext& ctx,
     const std::function<std::vector<CustomTensor>(const CustomTensor&, const CustomTensor&,
                                             const CustomTensor&)>& func) {
-  std::vector<const Tensor*> ins;
+  std::vector<Tensor> ins;
   for (auto name : ctx.InNameList()) {
     VLOG(0) << "input name: " << name;
     auto* x = ctx.Input<Tensor>(name);
+    auto custom_use_input = framework::Tensor();
+    custom_use_input.ShareDataWith(*x);
+
     PADDLE_ENFORCE_NOT_NULL(x, "input %s is nullptr.", name);
     PADDLE_ENFORCE(x->IsInitialized(), "input %s is not initialized.", name);
-    ins.emplace_back(x);
+    ins.emplace_back(custom_use_input);
   }
 
   VLOG(0) << "run forward func in CallKernelFunc";
-  CustomTensor ct1 = CustomTensor((void*)ins[0]);
-  CustomTensor ct2 = CustomTensor((void*)ins[1]);
-  CustomTensor ct3 = CustomTensor((void*)ins[2]);
+
+  CustomTensor ct1 = CustomTensor((void*)(&ins[0]));
+  CustomTensor ct2 = CustomTensor((void*)(&ins[1]));
+  CustomTensor ct3 = CustomTensor((void*)(&ins[2]));
+
   auto outs = func(ct1, ct2, ct3);
 
   VLOG(0) << "share output in CallKernelFunc";
