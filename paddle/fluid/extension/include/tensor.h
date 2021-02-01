@@ -84,6 +84,11 @@ public:
     /// \return void.
     void ShareDataWith(void* tensor_out);
 
+    /// \brief Get the size of current tensor.
+    /// Use this method to get the size of tensor
+    /// \return int64_t.
+    int64_t size();
+
 private:
     mutable std::shared_ptr<void> tensor_;
     PaddlePlace place_;

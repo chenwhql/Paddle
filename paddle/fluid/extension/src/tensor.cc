@@ -172,5 +172,10 @@ void CustomTensor::ShareDataWith(void* out_data){
             *static_cast<framework::LoDTensor*>(tensor_.get()));
 }
 
+int64_t CustomTensor::size() {
+    GET_CASTED_TENSOR;
+    return tensor->numel();
+}
+
 }  // namespace paddle
 
