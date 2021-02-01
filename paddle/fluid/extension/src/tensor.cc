@@ -29,7 +29,7 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
-
+CustomTensor::CustomTensor():tensor_(nullptr){};
 CustomTensor::CustomTensor(void* raw_tensor) : tensor_(static_cast<framework::LoDTensor*>(raw_tensor)){}
 
 template <typename T>
@@ -167,9 +167,9 @@ std::vector<std::vector<size_t>> CustomTensor::lod() const {
 
 
 void CustomTensor::ShareDataWith(void* out_data){
-    auto out_data_tmp = framework::LoDTensor();
-    out_data_tmp = *static_cast<framework::LoDTensor*>(tensor_.get());
-    static_cast<framework::LoDTensor*>(out_data)->ShareDataWith(out_data_tmp);
+    static_cast<framework::LoDTensor*>(out_data)
+    ->ShareDataWith(
+            *static_cast<framework::LoDTensor*>(tensor_.get()));
 }
 
 }  // namespace paddle

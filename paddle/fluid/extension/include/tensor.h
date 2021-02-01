@@ -21,6 +21,9 @@ namespace paddle {
 
 class CustomTensor{
 public:
+    /// \brief Construct a CustomTensor for CustomOp.
+    /// Generally it's only used for user to create CustomTensor.
+    explicit CustomTensor();
     explicit CustomTensor(void* raw_tensor);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
