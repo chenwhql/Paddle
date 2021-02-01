@@ -23,8 +23,8 @@ limitations under the License. */
 #include <utility>
 #include <vector>
 
-#include "all.h"
-
+#include "paddle/fluid/extension/include/tensor.h"
+#include "paddle/fluid/extension/include/device.h"
 namespace paddle {
 
 using FuncInfo = std::pair<size_t, size_t>;
