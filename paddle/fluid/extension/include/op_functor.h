@@ -25,6 +25,7 @@ limitations under the License. */
 
 #include "paddle/fluid/extension/include/tensor.h"
 #include "paddle/fluid/extension/include/device.h"
+
 namespace paddle {
 
 using FuncInfo = std::pair<size_t, size_t>;
@@ -329,15 +330,15 @@ struct OpKernelFuncRegistrar : public Registrar {
   }
 
 #define ADD_FORWARD_CPU_KERNEL(op_type, ...) \
-  ADD_KERNEL(op_type, true, CPU, ::paddle::platform::CPUPlace(), __VA_ARGS__)
+  ADD_KERNEL(op_type, true, CPU, ::paddle::PaddlePlace(paddle::PlaceType::kCPU), __VA_ARGS__)
 
 #define ADD_BACKWARD_CPU_KERNEL(op_type, ...) \
-  ADD_KERNEL(op_type, false, CPU, ::paddle::platform::CPUPlace(), __VA_ARGS__)
+  ADD_KERNEL(op_type, false, CPU, ::paddle::PaddlePlace(paddle::PlaceType::kCPU), __VA_ARGS__)
 
 #define ADD_FORWARD_CUDA_KERNEL(op_type, ...) \
-  ADD_KERNEL(op_type, true, CUDA, ::paddle::platform::CUDAPlace(), __VA_ARGS__)
+  ADD_KERNEL(op_type, true, CUDA, ::paddle::PaddlePlace(paddle::PlaceType::kGPU), __VA_ARGS__)
 
 #define ADD_BACKWARD_CUDA_KERNEL(op_type, ...) \
-  ADD_KERNEL(op_type, false, CUDA, ::paddle::platform::CUDAPlace(), __VA_ARGS__)
+  ADD_KERNEL(op_type, false, CUDA, ::paddle::PaddlePlace(paddle::PlaceType::kGPU), __VA_ARGS__)
 
 }  // namespace paddle
