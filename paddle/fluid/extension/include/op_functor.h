@@ -26,7 +26,7 @@ limitations under the License. */
 #include "all.h"
 namespace paddle {
 
-using Tensor = CustomTensor;
+using Tensor = paddle::CustomTensor;
 
 using FuncInfo = std::pair<size_t, size_t>;
 using TraitsFunc = FuncInfo (*)();
