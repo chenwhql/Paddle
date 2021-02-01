@@ -246,7 +246,7 @@ static inline void* GetDsoHandleFromSearchPath(
 #else
     auto errorno = GetLastError();
 #endif  // !_WIN32
-    if (throw_on_error) {
+    if (false) {
       // NOTE: Special error report case, no need to change its format
       PADDLE_THROW(
           platform::errors::PreconditionNotMet(error_msg, dso_name, errorno));
