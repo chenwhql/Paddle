@@ -94,26 +94,26 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
   }
 
   std::vector<CustomTensor> custom_use_ins;
-  for(auto tensor : ins){
-      auto custom_tensor = CustomTensor((void*)(&tensor));
-      custom_use_ins.push_back(custom_tensor);
+  custom_use_ins.reserve(ins.size());
+for(auto tensor : ins){
+      custom_use_ins.emplace_back(CustomTensor((void*)(&tensor)));
   }
-//  std::vector<boost::any> attrs;
-//
-//  VLOG(0) << "Run ComputeFunc.";
-//
-//  auto outs = func(custom_use_ins_ptr, attrs);
-//
-//  VLOG(0) << "Share outputs into ExecutionContext.";
-//  auto out_name = ctx.OutNameList();
-//  PADDLE_ENFORCE_EQ(
-//      out_name.size(), 1UL,
-//      platform::errors::InvalidArgument(
-//          "Custom operator can only hold 1 output as vector<Tensor>."));
-//  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
-//  for (size_t i = 0; i < true_outs.size(); ++i) {
-//      outs.at(i).ShareDataWith((true_outs)[i]);
-//  }
+  std::vector<boost::any> attrs;
+
+  VLOG(0) << "Run ComputeFunc.";
+
+  auto outs = func(custom_use_ins, attrs);
+
+  VLOG(0) << "Share outputs into ExecutionContext.";
+  auto out_name = ctx.OutNameList();
+  PADDLE_ENFORCE_EQ(
+      out_name.size(), 1UL,
+      platform::errors::InvalidArgument(
+          "Custom operator can only hold 1 output as vector<Tensor>."));
+  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
+  for (size_t i = 0; i < true_outs.size(); ++i) {
+      outs.at(i).ShareDataWith((true_outs)[i]);
+  }
 }
 
 //////////////////// Operator Define /////////////////
