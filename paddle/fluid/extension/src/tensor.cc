@@ -29,20 +29,29 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
-CustomTensor::CustomTensor():tensor_(std::make_shared<framework::LoDTensor>()), place_(PlaceType::kUNK){};
-CustomTensor::CustomTensor(void* raw_tensor) : tensor_(static_cast<framework::LoDTensor*>(raw_tensor)), place_(PlaceType::kUNK){}
+CustomTensor::CustomTensor(PaddlePlace place):
+        tensor_(std::make_shared<framework::LoDTensor>()),
+        place_(place){};
+CustomTensor::CustomTensor(void* raw_tensor) :
+        tensor_(static_cast<framework::LoDTensor*>(raw_tensor)),
+        place_(PlaceType::kUNK){}
 
 template <typename T>
 T *CustomTensor::mutable_data(const PaddlePlace& place) {
-    GET_CASTED_TENSOR
     place_ = place;
+    return mutable_data<T>();
+}
+
+template <typename T>
+T *CustomTensor::mutable_data() {
+    GET_CASTED_TENSOR
     PADDLE_ENFORCE_GT(
             tensor->numel(), 0,
             platform::errors::PreconditionNotMet(
                     "You should call ZeroCopyTensor::Reshape(const std::vector<int> "
                     "&shape)"
                     "function before retrieving mutable_data from input tensor."));
-    switch (static_cast<int>(place.GetPlace())) {
+    switch (static_cast<int>(place_.GetPlace())) {
         case static_cast<int>(PlaceType::kCPU): {
             return tensor->mutable_data<T>(platform::CPUPlace());
         }
@@ -53,8 +62,8 @@ T *CustomTensor::mutable_data(const PaddlePlace& place) {
 #endif
         }
         default:
-            PADDLE_THROW(platform::errors::Unavailable("Unsupported place: %d",
-                                                       static_cast<int>(place.GetPlace())));
+            PADDLE_THROW(platform::errors::Unavailable("CustomOp unsupported place: %d",
+                                                   static_cast<int>(place_.GetPlace())));
     }
 }
 
@@ -168,7 +177,8 @@ const PaddlePlace& CustomTensor::place() {
         place_ = PaddlePlace(PlaceType::kGPU);
     }else{
         PADDLE_THROW("Current CustomTensor hold unsupported Place Type, Please Init it"
-                     "with Place::kCPU or Place::kGPU");
+                     "using CustomTensor::mutable_data<T>(PaddlePlace) which T is"
+                     "either Place::kCPU or Place::kGPU");
     }
     return place_;
 }

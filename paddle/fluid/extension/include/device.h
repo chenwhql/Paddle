@@ -18,7 +18,6 @@ namespace paddle {
 
 enum class PlaceType { kUNK = -1, kCPU, kGPU };
 
-template<typename T>
 class PaddlePlace {
 public:
     explicit PaddlePlace(PlaceType pc) : pc_(pc){}

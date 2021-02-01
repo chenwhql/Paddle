@@ -21,9 +21,9 @@ namespace paddle {
 
 class CustomTensor{
 public:
-    /// \brief Construct a CustomTensor for CustomOp.
+    /// \brief Construct a CustomTensor on None Place for CustomOp.
     /// Generally it's only used for user to create CustomTensor.
-    explicit CustomTensor();
+    explicit CustomTensor(PaddlePlace place);
     explicit CustomTensor(void* raw_tensor);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
@@ -34,9 +34,16 @@ public:
     /// \brief Get the memory pointer in CPU or GPU with specific data type.
     /// Please Reshape the tensor first before call this.
     /// It's usually used to get input data pointer.
-    /// \param place The place of the tensor.
+    /// \param place The place of the tensor this will override the original place
+    /// of current tensor.
     template <typename T>
     T* mutable_data(const PaddlePlace& place);
+
+    /// \brief Get the memory pointer in CPU or GPU with specific data type.
+    /// Please Reshape the tensor first before call this.
+    /// It's usually used to get input data pointer.
+    template <typename T>
+    T* mutable_data();
 
     /// \brief Get the memory pointer directly.
     /// It's usually used to get the output data pointer.
