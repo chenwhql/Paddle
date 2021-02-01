@@ -93,7 +93,7 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
     ins.push_back(custom_use_input);
   }
 
-  std::vector<const CustomTensor> custom_use_ins;
+  std::vector<CustomTensor> custom_use_ins;
   for(auto tensor : ins){
       auto custom_tensor = CustomTensor((void*)(&tensor));
       custom_use_ins.push_back(custom_tensor);
