@@ -95,7 +95,7 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
 
   std::vector<CustomTensor> custom_use_ins;
   custom_use_ins.reserve(ins.size());
-for(auto tensor : ins){
+  for(auto tensor : ins){
       custom_use_ins.emplace_back(CustomTensor((void*)(&tensor)));
   }
   std::vector<boost::any> attrs;
