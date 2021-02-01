@@ -87,7 +87,7 @@ public:
     /// \brief Get the size of current tensor.
     /// Use this method to get the size of tensor
     /// \return int64_t.
-    int64_t size();
+    int64_t size() const;
 
 private:
     mutable std::shared_ptr<void> tensor_;

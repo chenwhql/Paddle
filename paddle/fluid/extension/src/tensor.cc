@@ -172,7 +172,7 @@ void CustomTensor::ShareDataWith(void* out_data){
             *static_cast<framework::LoDTensor*>(tensor_.get()));
 }
 
-int64_t CustomTensor::size() {
+int64_t CustomTensor::size() const{
     GET_CASTED_TENSOR;
     return tensor->numel();
 }
