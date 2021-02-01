@@ -93,13 +93,11 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
     ins.push_back(custom_use_input);
   }
 
-//  std::vector<CustomTensor> custom_use_ins;
-//  std::vector<const CustomTensor*> custom_use_ins_ptr;
-//  for(auto tensor : ins){
-//      auto custom_tensor = CustomTensor((void*)(&tensor));
-//      custom_use_ins.push_back(custom_tensor);
-//      custom_use_ins_ptr.push_back(&custom_tensor);
-//  }
+  std::vector<const CustomTensor> custom_use_ins;
+  for(auto tensor : ins){
+      auto custom_tensor = CustomTensor((void*)(&tensor));
+      custom_use_ins.push_back(custom_tensor);
+  }
 //  std::vector<boost::any> attrs;
 //
 //  VLOG(0) << "Run ComputeFunc.";

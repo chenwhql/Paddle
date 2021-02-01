@@ -32,6 +32,7 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
 CustomTensor::CustomTensor(PaddlePlace place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
+
 CustomTensor::CustomTensor(void* raw_tensor) :
         tensor_(static_cast<framework::LoDTensor*>(raw_tensor)),
         place_(PlaceType::kUNK){}
