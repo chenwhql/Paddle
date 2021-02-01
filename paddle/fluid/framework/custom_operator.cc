@@ -88,17 +88,17 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    auto custom_use_input = framework::LoDTensor();
+    auto custom_use_input = framework::Tensor();
     custom_use_input.ShareDataWith(*x);
-    ins.emplace_back(custom_use_input);
+    ins.push_back(custom_use_input);
   }
 
-  std::vector<const CustomTensor> custom_use_ins;
+  std::vector<CustomTensor> custom_use_ins;
   std::vector<const CustomTensor*> custom_use_ins_ptr;
   for(auto tensor : ins){
       auto custom_tensor = CustomTensor((void*)(&tensor));
-      custom_use_ins.emplace_back(custom_tensor);
-      custom_use_ins_ptr.emplace_back(&custom_tensor);
+      custom_use_ins.push_back(custom_tensor);
+      custom_use_ins_ptr.push_back(&custom_tensor);
   }
   std::vector<boost::any> attrs;
 
