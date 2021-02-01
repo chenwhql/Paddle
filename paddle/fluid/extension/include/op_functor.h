@@ -24,13 +24,12 @@ limitations under the License. */
 #include <vector>
 
 #include "all.h"
-namespace paddle {
 
-using Tensor = paddle::CustomTensor;
+namespace paddle {
 
 using FuncInfo = std::pair<size_t, size_t>;
 using TraitsFunc = FuncInfo (*)();
-using ComputeFunc = std::vector<Tensor> (*)(std::vector<const Tensor*> inputs,
+using ComputeFunc = std::vector<CustomTensor> (*)(std::vector<const CustomTensor*> inputs,
                                             std::vector<boost::any> attrs);
 // key std::string means data type, replace by enum DataType later
 using ComputeFuncMap = std::unordered_map<std::string, ComputeFunc>;
@@ -74,7 +73,7 @@ struct ComputeFuncImpl;
 
 template <typename Return, typename... Args, Return (*impl_fn)(Args...)>
 struct ComputeFuncImpl<Return (*)(Args...), impl_fn> {
-  static Return Compute(std::vector<const Tensor*> inputs,
+  static Return Compute(std::vector<const CustomTensor*> inputs,
                         std::vector<boost::any> attrs) {
     return ComputeCallHelper<Args..., TypeTag<int>>::template Compute<0, 0>(
         inputs, attrs);
@@ -85,14 +84,14 @@ struct ComputeFuncImpl<Return (*)(Args...), impl_fn> {
   struct ComputeCallHelper;
 
   template <typename... Tail>
-  struct ComputeCallHelper<const Tensor&, Tail...> {
+  struct ComputeCallHelper<const CustomTensor&, Tail...> {
     template <int in_idx, int attr_idx, typename... PreviousArgs>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<const CustomTensor*> inputs,
                           std::vector<boost::any> attrs,
                           const PreviousArgs&... pargs) {
       static_assert(attr_idx == 0,
                     "Input tensor should appear before attributes.");
-      const Tensor& arg = *(inputs[in_idx]);
+      const CustomTensor& arg = *(inputs[in_idx]);
       return ComputeCallHelper<Tail...>::template Compute<in_idx + 1, attr_idx>(
           inputs, attrs, pargs..., arg);
     }
@@ -101,7 +100,7 @@ struct ComputeFuncImpl<Return (*)(Args...), impl_fn> {
   template <typename... Tail>
   struct ComputeCallHelper<int, Tail...> {
     template <int in_idx, int attr_idx, typename... PreviousArgs>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<const CustomTensor*> inputs,
                           std::vector<boost::any> attrs,
                           const PreviousArgs&... pargs) {
       try {
@@ -120,7 +119,7 @@ struct ComputeFuncImpl<Return (*)(Args...), impl_fn> {
   template <typename T>
   struct ComputeCallHelper<TypeTag<T>> {
     template <int in_idx, int attr_idx, typename... PreviousArgs>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<const CustomTensor*> inputs,
                           std::vector<boost::any> attrs, const Args&... args) {
       return impl_fn(args...);
     }
