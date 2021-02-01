@@ -79,7 +79,7 @@ static std::type_index StringToDataType(const std::string& str) {
 static void RunComputeFunc(const framework::ExecutionContext& ctx,
                            paddle::ComputeFunc func) {
   VLOG(0) << "Before run ComputeFunc.";
-  std::vector<const framework::Tensor> ins;
+  std::vector<framework::Tensor> ins;
   for (auto name : ctx.InNameList()) {
     VLOG(0) << "input name: " << name;
     auto* x = ctx.Input<Tensor>(name);
@@ -93,29 +93,29 @@ static void RunComputeFunc(const framework::ExecutionContext& ctx,
     ins.push_back(custom_use_input);
   }
 
-  std::vector<CustomTensor> custom_use_ins;
-  std::vector<const CustomTensor*> custom_use_ins_ptr;
-  for(auto tensor : ins){
-      auto custom_tensor = CustomTensor((void*)(&tensor));
-      custom_use_ins.push_back(custom_tensor);
-      custom_use_ins_ptr.push_back(&custom_tensor);
-  }
-  std::vector<boost::any> attrs;
-
-  VLOG(0) << "Run ComputeFunc.";
-
-  auto outs = func(custom_use_ins_ptr, attrs);
-
-  VLOG(0) << "Share outputs into ExecutionContext.";
-  auto out_name = ctx.OutNameList();
-  PADDLE_ENFORCE_EQ(
-      out_name.size(), 1UL,
-      platform::errors::InvalidArgument(
-          "Custom operator can only hold 1 output as vector<Tensor>."));
-  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
-  for (size_t i = 0; i < true_outs.size(); ++i) {
-      outs.at(i).ShareDataWith((true_outs)[i]);
-  }
+//  std::vector<CustomTensor> custom_use_ins;
+//  std::vector<const CustomTensor*> custom_use_ins_ptr;
+//  for(auto tensor : ins){
+//      auto custom_tensor = CustomTensor((void*)(&tensor));
+//      custom_use_ins.push_back(custom_tensor);
+//      custom_use_ins_ptr.push_back(&custom_tensor);
+//  }
+//  std::vector<boost::any> attrs;
+//
+//  VLOG(0) << "Run ComputeFunc.";
+//
+//  auto outs = func(custom_use_ins_ptr, attrs);
+//
+//  VLOG(0) << "Share outputs into ExecutionContext.";
+//  auto out_name = ctx.OutNameList();
+//  PADDLE_ENFORCE_EQ(
+//      out_name.size(), 1UL,
+//      platform::errors::InvalidArgument(
+//          "Custom operator can only hold 1 output as vector<Tensor>."));
+//  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
+//  for (size_t i = 0; i < true_outs.size(); ++i) {
+//      outs.at(i).ShareDataWith((true_outs)[i]);
+//  }
 }
 
 //////////////////// Operator Define /////////////////
