@@ -16,6 +16,16 @@ limitations under the License. */
 
 namespace paddle {
 
-enum class PaddlePlace { kUNK = -1, kCPU, kGPU };
+enum class PlaceType { kUNK = -1, kCPU, kGPU };
+
+template<typename T>
+class PaddlePlace {
+public:
+    explicit PaddlePlace(PlaceType pc) : pc_(pc){}
+    const PlaceType& GetPlace() const { return pc_; };
+
+protected:
+    PlaceType pc_;
+};
 
 }  // namespace paddle

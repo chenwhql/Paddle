@@ -36,15 +36,13 @@ public:
     /// It's usually used to get input data pointer.
     /// \param place The place of the tensor.
     template <typename T>
-    T* mutable_data(PaddlePlace place);
+    T* mutable_data(const PaddlePlace& place);
 
     /// \brief Get the memory pointer directly.
     /// It's usually used to get the output data pointer.
-    /// \param[out] place To get the device type of the tensor.
-    /// \param[out] size To get the data size of the tensor.
     /// \return The tensor data buffer pointer.
     template <typename T>
-    T* data(PaddlePlace* place, int* size) const;
+    T* data() const;
 
     /// \brief Copy the host memory to tensor data.
     /// It's usually used to set the input tensor data.
@@ -69,10 +67,6 @@ public:
     /// \brief Return the lod info of the tensor.
     std::vector<std::vector<size_t>> lod() const;
 
-    void SetPlace(PaddlePlace place) {
-        place_ = place;
-    }
-
     /// \brief Return the data type of the tensor.
     /// It's usually used to get the output tensor data type.
     /// \return The data type of the tensor.
@@ -89,11 +83,14 @@ public:
     /// \return int64_t.
     int64_t size() const;
 
+    /// \brief Get the place of current tensor.
+    /// Use this method to get the place of tensor
+    /// \return Place.
+    const PaddlePlace& place();
+
 private:
     mutable std::shared_ptr<void> tensor_;
     PaddlePlace place_;
-    PaddleDType dtype_;
-    int device_num_{};
 };
 
 }  // namespace paddle

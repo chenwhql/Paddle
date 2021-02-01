@@ -16,7 +16,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/lod_tensor.h"
 #include "paddle/fluid/memory/memcpy.h"
 #include "paddle/fluid/platform/enforce.h"
-
+#include "paddle/fluid/platform/gpu_info.h"
 namespace paddle {
 
 #define GET_CASTED_TENSOR                               \
@@ -29,45 +29,39 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
-CustomTensor::CustomTensor():tensor_(nullptr){};
-CustomTensor::CustomTensor(void* raw_tensor) : tensor_(static_cast<framework::LoDTensor*>(raw_tensor)){}
+CustomTensor::CustomTensor():tensor_(std::make_shared<framework::LoDTensor>()), place_(PlaceType::kUNK){};
+CustomTensor::CustomTensor(void* raw_tensor) : tensor_(static_cast<framework::LoDTensor*>(raw_tensor)), place_(PlaceType::kUNK){}
 
 template <typename T>
-T *CustomTensor::mutable_data(PaddlePlace place) {
+T *CustomTensor::mutable_data(const PaddlePlace& place) {
     GET_CASTED_TENSOR
+    place_ = place;
     PADDLE_ENFORCE_GT(
             tensor->numel(), 0,
             platform::errors::PreconditionNotMet(
                     "You should call ZeroCopyTensor::Reshape(const std::vector<int> "
                     "&shape)"
                     "function before retrieving mutable_data from input tensor."));
-    switch (static_cast<int>(place)) {
-        case static_cast<int>(PaddlePlace::kCPU): {
+    switch (static_cast<int>(place.GetPlace())) {
+        case static_cast<int>(PlaceType::kCPU): {
             return tensor->mutable_data<T>(platform::CPUPlace());
         }
-        case static_cast<int>(PaddlePlace::kGPU): {
-            return tensor->mutable_data<T>(platform::CUDAPlace(device_num_));
+        case static_cast<int>(PlaceType::kGPU): {
+#ifdef PADDLE_WITH_CUDA
+            int device_num = platform::GetCurrentDeviceId();
+            return tensor->mutable_data<T>(platform::CUDAPlace(device_num));
+#endif
         }
         default:
             PADDLE_THROW(platform::errors::Unavailable("Unsupported place: %d",
-                                                       static_cast<int>(place)));
+                                                       static_cast<int>(place.GetPlace())));
     }
 }
 
 template <typename T>
-T *CustomTensor::data(PaddlePlace *place, int *size) const {
+T *CustomTensor::data() const {
     GET_CASTED_TENSOR;
     auto *res = tensor->data<T>();
-
-    if (platform::is_cpu_place(tensor->place())) {
-        *place = PaddlePlace::kCPU;
-    } else if (platform::is_gpu_place(tensor->place())) {
-        *place = PaddlePlace::kGPU;
-    } else {
-        *place = PaddlePlace::kUNK;
-    }
-
-    *size = tensor->numel();
     return res;
 }
 
@@ -96,16 +90,17 @@ void CustomTensor::copy_from_cpu(const T *data) {
                               "function before copying data from cpu."));
     size_t ele_size = tensor->numel() * sizeof(T);
 
-    if (place_ == PaddlePlace::kCPU) {
+    if (place_.GetPlace() == PlaceType::kCPU) {
         auto *t_data = tensor->mutable_data<T>(platform::CPUPlace());
         std::memcpy(static_cast<void *>(t_data), data, ele_size);
     } else {
 #ifdef PADDLE_WITH_CUDA
-        platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
-platform::CUDAPlace gpu_place(device_);
-auto *t_data = tensor->mutable_data<T>(gpu_place);
-auto *dev_ctx =
-    static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
+    platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
+    int device_num = platform::GetCurrentDeviceId();
+    platform::CUDAPlace gpu_place(device_num);
+    auto *t_data = tensor->mutable_data<T>(gpu_place);
+    auto *dev_ctx =
+        static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
 
 memory::Copy(gpu_place, static_cast<void *>(t_data), platform::CPUPlace(),
              data, ele_size, dev_ctx->stream());
@@ -165,6 +160,18 @@ std::vector<std::vector<size_t>> CustomTensor::lod() const {
     return res;
 }
 
+const PaddlePlace& CustomTensor::place() {
+    GET_CASTED_TENSOR;
+    if(platform::is_cpu_place(tensor->place())){
+        place_ = PaddlePlace(PlaceType::kCPU);
+    }else if(platform::is_gpu_place(tensor->place())){
+        place_ = PaddlePlace(PlaceType::kGPU);
+    }else{
+        PADDLE_THROW("Current CustomTensor hold unsupported Place Type, Please Init it"
+                     "with Place::kCPU or Place::kGPU");
+    }
+    return place_;
+}
 
 void CustomTensor::ShareDataWith(void* out_data){
     static_cast<framework::LoDTensor*>(out_data)
@@ -176,6 +183,5 @@ int64_t CustomTensor::size() const{
     GET_CASTED_TENSOR;
     return tensor->numel();
 }
-
 }  // namespace paddle
 
