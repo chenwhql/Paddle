@@ -88,7 +88,7 @@ struct KernelFuncImpl;
 
 template <typename Return, typename... Args, Return (*impl_fn)(Args...)>
 struct KernelFuncImpl<Return (*)(Args...), impl_fn> {
-  static Return Compute(std::vector<const Tensor*> inputs,
+  static Return Compute(std::vector<Tensor> inputs,
                         std::vector<boost::any> attrs) {
     return ComputeCallHelper<Args..., TypeTag<int>>::template Compute<0, 0>(
         inputs, attrs);
@@ -102,12 +102,12 @@ struct KernelFuncImpl<Return (*)(Args...), impl_fn> {
   template <typename... Tail>
   struct ComputeCallHelper<const Tensor&, Tail...> {
     template <int in_idx, int attr_idx, typename... PreviousArgs>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<Tensor> inputs,
                           std::vector<boost::any> attrs,
                           const PreviousArgs&... pargs) {
       static_assert(attr_idx == 0,
                     "Input tensor should appear before attributes.");
-      const Tensor& arg = *(inputs[in_idx]);
+      const Tensor& arg = inputs[in_idx];
       return ComputeCallHelper<Tail...>::template Compute<in_idx + 1, attr_idx>(
           inputs, attrs, pargs..., arg);
     }
@@ -117,7 +117,7 @@ struct KernelFuncImpl<Return (*)(Args...), impl_fn> {
   template <typename... Tail>
   struct ComputeCallHelper<int, Tail...> {
     template <int in_idx, int attr_idx, typename... PreviousArgs>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<Tensor> inputs,
                           std::vector<boost::any> attrs,
                           const PreviousArgs&... pargs) {
       try {
@@ -137,7 +137,7 @@ struct KernelFuncImpl<Return (*)(Args...), impl_fn> {
   template <typename T>
   struct ComputeCallHelper<TypeTag<T>> {
     template <int in_idx, int attr_idx>
-    static Return Compute(std::vector<const Tensor*> inputs,
+    static Return Compute(std::vector<Tensor> inputs,
                           std::vector<boost::any> attrs, const Args&... args) {
       return impl_fn(args...);
     }
