@@ -295,7 +295,7 @@ void RegisterOperator(const std::string& name, size_t input_num,
 }
 
 
-platform::Place PaddlePlaceToPlatformPlace(PaddlePlace pc){
+platform::Place PaddlePlaceToPlatformPlace(const PaddlePlace& pc){
     if(pc.GetPlace() == PlaceType::kCPU){
         return platform::Place(platform::CPUPlace());
     }else if(pc.GetPlace() == PlaceType::kGPU){

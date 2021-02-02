@@ -206,7 +206,7 @@ std::vector<std::vector<size_t>> CustomTensor::lod() const {
     return res;
 }
 
-const PaddlePlace& CustomTensor::place() {
+const PaddlePlace& CustomTensor::place() const {
     GET_CASTED_TENSOR;
     if(platform::is_cpu_place(tensor->place())){
         place_ = PaddlePlace(PlaceType::kCPU);

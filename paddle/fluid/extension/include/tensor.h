@@ -93,11 +93,11 @@ public:
     /// \brief Get the place of current tensor.
     /// Use this method to get the place of tensor
     /// \return Place.
-    const PaddlePlace& place();
+    const PaddlePlace& place() const;
 
 private:
     mutable std::shared_ptr<void> tensor_;
-    PaddlePlace place_;
+    mutable PaddlePlace place_;
 };
 
 }  // namespace paddle
