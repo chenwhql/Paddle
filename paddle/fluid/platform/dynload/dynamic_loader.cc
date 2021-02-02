@@ -150,6 +150,7 @@ static inline void* GetDsoHandleFromSpecificPath(const std::string& spec_path,
                                                  const std::string& dso_name,
                                                  int dynload_flags) {
   void* dso_handle = nullptr;
+    VLOG(0)<<"im here2";
   if (!spec_path.empty()) {
     // search xxx.so from custom path
     VLOG(3) << "Try to find library: " << dso_name
@@ -157,6 +158,7 @@ static inline void* GetDsoHandleFromSpecificPath(const std::string& spec_path,
     std::string dso_path = join(spec_path, dso_name);
     dso_handle = dlopen(dso_path.c_str(), dynload_flags);
   }
+    VLOG(0)<<"im here3";
   return dso_handle;
 }
 
@@ -164,7 +166,9 @@ static inline void* GetDsoHandleFromDefaultPath(const std::string& dso_path,
                                                 int dynload_flags) {
   // default search from LD_LIBRARY_PATH/DYLD_LIBRARY_PATH
   // and /usr/local/lib path
+    VLOG(0)<<"im here8";
   void* dso_handle = dlopen(dso_path.c_str(), dynload_flags);
+    VLOG(0)<<"im here9";
   VLOG(3) << "Try to find library: " << dso_path
           << " from default system path.";
 
@@ -204,18 +208,24 @@ static inline void* GetDsoHandleFromSearchPath(
   std::vector<std::string> dso_names = split(dso_name, ";");
   void* dso_handle = nullptr;
   for (auto dso : dso_names) {
+      VLOG(0)<<"im here1";
     // 1. search in user config path by FLAGS
     dso_handle = GetDsoHandleFromSpecificPath(config_path, dso, dynload_flags);
+      VLOG(0)<<"im here4";
     // 2. search in extra paths
     if (nullptr == dso_handle) {
       for (auto path : extra_paths) {
+          VLOG(0)<<"im here5";
         VLOG(3) << "extra_paths: " << path;
         dso_handle = GetDsoHandleFromSpecificPath(path, dso, dynload_flags);
       }
+        VLOG(0)<<"im here6";
     }
     // 3. search in system default path
     if (nullptr == dso_handle) {
+        VLOG(0)<<"im here7";
       dso_handle = GetDsoHandleFromDefaultPath(dso, dynload_flags);
+        VLOG(0)<<"im here10";
     }
     if (nullptr != dso_handle) break;
   }
