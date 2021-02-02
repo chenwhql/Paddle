@@ -169,7 +169,7 @@ static inline void* GetDsoHandleFromDefaultPath(const std::string& dso_path,
     VLOG(0)<<"im here8";
   void* dso_handle = dlopen(dso_path.c_str(), dynload_flags);
     VLOG(0)<<"im here9";
-  VLOG(3) << "Try to find library: " << dso_path
+    VLOG(0) << "Try to find library: " << dso_path
           << " from default system path.";
 
 // TODO(chenweihang): This path is used to search which libs?
