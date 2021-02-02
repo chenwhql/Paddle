@@ -29,6 +29,7 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
+
 CustomTensor::CustomTensor(PaddlePlace place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
