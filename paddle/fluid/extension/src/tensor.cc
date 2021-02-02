@@ -50,7 +50,7 @@ T *CustomTensor::mutable_data() {
     PADDLE_ENFORCE_GT(
             tensor->numel(), 0,
             platform::errors::PreconditionNotMet(
-                    "You should call ZeroCopyTensor::Reshape(const std::vector<int> "
+                    "You should call CustomTensor::Reshape(const std::vector<int> "
                     "&shape)"
                     "function before retrieving mutable_data from input tensor."));
     switch (static_cast<int>(place_.GetPlace())) {
@@ -68,7 +68,7 @@ T *CustomTensor::mutable_data() {
                                                    static_cast<int>(place_.GetPlace())));
     }
 }
-
+    
 template <typename T>
 T *CustomTensor::data() const {
     GET_CASTED_TENSOR;
@@ -96,7 +96,7 @@ void CustomTensor::copy_from_cpu(const T *data) {
     GET_CASTED_TENSOR;
     PADDLE_ENFORCE_GE(tensor->numel(), 0,
                       platform::errors::PreconditionNotMet(
-                              "You should call ZeroCopyTensor::Reshape(const "
+                              "You should call CustomTensor::Reshape(const "
                               "std::vector<int> &shape)"
                               "function before copying data from cpu."));
     size_t ele_size = tensor->numel() * sizeof(T);
@@ -147,6 +147,41 @@ cudaStreamSynchronize(dev_ctx->stream());
 #endif
     }
 }
+
+template  void CustomTensor::copy_from_cpu<float>(const float *data);
+template  void CustomTensor::copy_from_cpu<double>(const double *data);
+template  void CustomTensor::copy_from_cpu<int64_t>(const int64_t *data);
+template  void CustomTensor::copy_from_cpu<int32_t>(const int32_t *data);
+template  void CustomTensor::copy_from_cpu<uint8_t>(const uint8_t *data);
+template  void CustomTensor::copy_from_cpu<int8_t>(const int8_t *data);
+
+template  void CustomTensor::copy_to_cpu<float>(float *data);
+template  void CustomTensor::copy_to_cpu<double>(double *data);
+template  void CustomTensor::copy_to_cpu<int64_t>(int64_t *data);
+template  void CustomTensor::copy_to_cpu<int32_t>(int32_t *data);
+template  void CustomTensor::copy_to_cpu<uint8_t>(uint8_t *data);
+template  void CustomTensor::copy_to_cpu<int8_t>(int8_t *data);
+
+template  float *CustomTensor::data<float>() const;
+template  double *CustomTensor::data<double>() const;
+template  int64_t *CustomTensor::data<int64_t>() const;
+template  int32_t *CustomTensor::data<int32_t>() const;
+template  uint8_t *CustomTensor::data<uint8_t>() const;
+template  int8_t *CustomTensor::data<int8_t>() const;
+
+template  float *CustomTensor::mutable_data<float>();
+template  double *CustomTensor::mutable_data<double>();
+template  int64_t *CustomTensor::mutable_data<int64_t>();
+template  int32_t *CustomTensor::mutable_data<int32_t>();
+template  uint8_t *CustomTensor::mutable_data<uint8_t>();
+template  int8_t *CustomTensor::mutable_data<int8_t>();
+
+template  float *CustomTensor::mutable_data<float>(const PaddlePlace& place);
+template  double *CustomTensor::mutable_data<double>(const PaddlePlace& place);
+template  int64_t *CustomTensor::mutable_data<int64_t>(const PaddlePlace& place);
+template  int32_t *CustomTensor::mutable_data<int32_t>(const PaddlePlace& place);
+template  uint8_t *CustomTensor::mutable_data<uint8_t>(const PaddlePlace& place);
+template  int8_t *CustomTensor::mutable_data<int8_t>(const PaddlePlace& place);
 
 std::vector<int> CustomTensor::shape() const {
     GET_CASTED_TENSOR
