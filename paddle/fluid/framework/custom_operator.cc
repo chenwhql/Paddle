@@ -78,7 +78,9 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    ins.push_back(x);
+    auto* tmp_in = new framework::Tensor();
+    tmp_in->ShareDataWith(*x);
+    ins.push_back(tmp_in);
   }
 
   std::vector<CustomTensor> custom_use_ins;
@@ -100,8 +102,6 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
           "Custom operator can only hold 1 output as vector<Tensor>."));
   auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
   for (size_t i = 0; i < true_outs.size(); ++i) {
-      auto tmp = std::vector<std::vector<size_t>>({{1}});
-//      outs.at(i).SetLoD(tmp);
       outs.at(i).ShareDataWith((true_outs)[i]);
   }
 //  auto out_name = ctx.OutNameList();

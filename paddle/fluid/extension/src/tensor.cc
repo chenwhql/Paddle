@@ -19,52 +19,23 @@ limitations under the License. */
 #include "paddle/fluid/platform/gpu_info.h"
 namespace paddle {
 
-#define GET_CASTED_TENSOR                               \
-  if (!tensor_) {                                       \
-    tensor_ = new framework::Tensor(); \
-  }                                                     \
-  auto *tensor = static_cast<framework::Tensor *>(tensor_);
+#define GET_CASTED_TENSOR                                     \
+  if (!tensor_) {                                             \
+    tensor_ = std::make_shared<framework::LoDTensor>();          \
+  }                                                           \
+  auto *tensor = static_cast<framework::LoDTensor *>(tensor_.get());
 
 void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
 
-CustomTensor::CustomTensor(const CustomTensor& origin) {
-    place_ = origin.place();
-    tensor_ = new framework::Tensor();
-    auto *tensor = static_cast<framework::Tensor *>(tensor_);
-    auto *origin_tensor = static_cast<framework::Tensor *>(origin.tensor_);
-    tensor->ShareDataWith(*origin_tensor);
-}
-
 CustomTensor::CustomTensor(PaddlePlace place):
-        tensor_(new framework::Tensor()),
+        tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
 
-CustomTensor::CustomTensor(void* raw_tensor){
-    tensor_ = new framework::Tensor();
-    auto *tensor = static_cast<framework::Tensor *>(tensor_);
-    auto *src_tensor = static_cast<framework::Tensor *>(raw_tensor);
-    tensor->ShareDataWith(*src_tensor);
-    place_ = place();
-}
+CustomTensor::CustomTensor(void* raw_tensor): tensor_(raw_tensor), place_(PlaceType::kUNK){}
 
-CustomTensor::~CustomTensor() {
-    delete static_cast<framework::Tensor*>(tensor_);
-    tensor_ = nullptr;
-}
-
-CustomTensor& CustomTensor::operator=(const CustomTensor& other){
-    if (this != &other) // not a self-assignment
-    {
-        other.place_ = place();
-        auto *tensor = static_cast<framework::Tensor *>(tensor_);
-        auto *other_tensor = static_cast<framework::Tensor *>(other.tensor_);
-        other_tensor->ShareDataWith(*tensor);
-    }
-    return *this;
-}
 
 template <typename T>
 T *CustomTensor::mutable_data(const PaddlePlace& place) {
@@ -218,23 +189,23 @@ std::vector<int> CustomTensor::shape() const {
     return framework::vectorize<int>(tensor->dims());
 }
 
-//void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
-//    GET_CASTED_TENSOR;
-//    framework::LoD lod;
-//    for (auto &level : x) {
-//        lod.emplace_back(level);
-//    }
-//    tensor->set_lod(lod);
-//}
-//
-//std::vector<std::vector<size_t>> CustomTensor::lod() const {
-//    GET_CASTED_TENSOR;
-//    std::vector<std::vector<size_t>> res;
-//    for (auto &level : tensor->lod()) {
-//        res.emplace_back(level);
-//    }
-//    return res;
-//}
+void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
+    GET_CASTED_TENSOR;
+    framework::LoD lod;
+    for (auto &level : x) {
+        lod.emplace_back(level);
+    }
+    tensor->set_lod(lod);
+}
+
+std::vector<std::vector<size_t>> CustomTensor::lod() const {
+    GET_CASTED_TENSOR;
+    std::vector<std::vector<size_t>> res;
+    for (auto &level : tensor->lod()) {
+        res.emplace_back(level);
+    }
+    return res;
+}
 
 const PaddlePlace& CustomTensor::place() const {
     GET_CASTED_TENSOR;
@@ -251,9 +222,9 @@ const PaddlePlace& CustomTensor::place() const {
 }
 
 void CustomTensor::ShareDataWith(void* out_data){
-    static_cast<framework::Tensor*>(out_data)
+    static_cast<framework::LoDTensor*>(out_data)
     ->ShareDataWith(
-            *static_cast<framework::Tensor*>(tensor_));
+            *static_cast<framework::LoDTensor*>(tensor_.get()));
 }
 
 int64_t CustomTensor::size() const{

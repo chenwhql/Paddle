@@ -25,9 +25,6 @@ public:
     /// Generally it's only used for user to create CustomTensor.
     explicit CustomTensor(PaddlePlace place);
     explicit CustomTensor(void* raw_tensor);
-    ~CustomTensor();
-    CustomTensor(const CustomTensor& origin);
-    CustomTensor& operator=(const CustomTensor& origin);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
     /// Reshape must be called before calling mutable_data() or copy_from_cpu()
@@ -69,13 +66,13 @@ public:
     /// \brief Return the shape of the Tensor.
     std::vector<int> shape() const;
 
-//    /// \brief Set lod info of the tensor.
-//    /// More about LOD can be seen here:
-//    ///  https://www.paddlepaddle.org.cn/documentation/docs/zh/beginners_guide/basic_concept/lod_tensor.html#lodtensor
-//    /// \param x the lod info.
-//    void SetLoD(const std::vector<std::vector<size_t>>& x);
-//    /// \brief Return the lod info of the tensor.
-//    std::vector<std::vector<size_t>> lod() const;
+    /// \brief Set lod info of the tensor.
+    /// More about LOD can be seen here:
+    ///  https://www.paddlepaddle.org.cn/documentation/docs/zh/beginners_guide/basic_concept/lod_tensor.html#lodtensor
+    /// \param x the lod info.
+    void SetLoD(const std::vector<std::vector<size_t>>& x);
+    /// \brief Return the lod info of the tensor.
+    std::vector<std::vector<size_t>> lod() const;
 
     /// \brief Return the data type of the tensor.
     /// It's usually used to get the output tensor data type.
@@ -99,7 +96,7 @@ public:
     const PaddlePlace& place() const;
 
 private:
-    mutable void* tensor_;
+    mutable std::shared_ptr<void> tensor_;
     mutable PaddlePlace place_;
 };
 
