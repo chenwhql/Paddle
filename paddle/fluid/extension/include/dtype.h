@@ -14,8 +14,6 @@ limitations under the License. */
 
 #pragma once
 
-#include "paddle/fluid/framework/data_type.h"
-
 namespace paddle {
 
 enum PaddleDType {

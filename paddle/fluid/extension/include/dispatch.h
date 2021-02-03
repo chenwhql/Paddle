@@ -14,7 +14,7 @@ limitations under the License. */
 
 #pragma once
 
-#include "paddle/fluid/framework/data_type.h"
+#include "paddle/fluid/extension/include/dtype.h"
 
 namespace paddle {
 
