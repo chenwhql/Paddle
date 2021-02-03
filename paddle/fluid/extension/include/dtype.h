@@ -20,6 +20,7 @@ namespace paddle {
 
 enum PaddleDType {
         FLOAT32,
+        FLOAT64,
         INT64,
         INT32,
         UINT8,

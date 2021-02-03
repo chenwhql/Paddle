@@ -87,6 +87,8 @@ PaddleDType CustomTensor::type() const {
         return PaddleDType::INT32;
     } else if (type == framework::proto::VarType::UINT8) {
         return PaddleDType::UINT8;
+    } else if (type == framework::proto::VarType::FP64){
+        return PaddleDType::FLOAT64;
     }
     return PaddleDType::FLOAT32;
 }
