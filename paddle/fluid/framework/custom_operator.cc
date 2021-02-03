@@ -69,7 +69,7 @@ static T* DynLoad(void* handle, std::string name) {
 static void RunKernelFunc(const framework::ExecutionContext& ctx,
                           paddle::KernelFunc func) {
   VLOG(1) << "Custom Operator: Start run KernelFunc.";
-  std::vector<framework::Tensor> ins;
+  std::vector<const framework::Tensor*> ins;
   for (auto name : ctx.InNameList()) {
     VLOG(1) << "Custom Operator: input name - " << name;
     auto* x = ctx.Input<Tensor>(name);
@@ -78,15 +78,13 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    auto custom_use_input = framework::Tensor();
-    custom_use_input.ShareDataWith(*x);
-    ins.push_back(custom_use_input);
+    ins.push_back(x);
   }
 
   std::vector<CustomTensor> custom_use_ins;
   custom_use_ins.reserve(ins.size());
-  for(auto tensor : ins){
-      custom_use_ins.emplace_back(CustomTensor((void*)(&tensor)));
+  for(auto in : ins){
+      custom_use_ins.emplace_back(CustomTensor((void*)(in)));
   }
   std::vector<boost::any> attrs;
 
