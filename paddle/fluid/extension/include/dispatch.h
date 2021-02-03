@@ -19,7 +19,9 @@ limitations under the License. */
 namespace paddle {
 
 #define PD_PRIVATE_CASE_TYPE_USING_HINT(NAME, enum_type, type, HINT, ...) \
+  std::cout<<"im here2.1"<<std::endl;                                                                        \
   case enum_type: {                                                       \
+    std::cout<<"im here2.2"<<std::endl;\
     using HINT = type;                                                    \
     std::cout<<"im here3"<<std::endl;                                     \
     return __VA_ARGS__();                                                 \
