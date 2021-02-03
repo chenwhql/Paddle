@@ -42,9 +42,13 @@ CustomTensor::CustomTensor(PaddlePlace place):
         tensor_(new framework::Tensor()),
         place_(place){};
 
-CustomTensor::CustomTensor(void* raw_tensor) :
-        tensor_(static_cast<framework::Tensor*>(raw_tensor)),
-        place_(PlaceType::kUNK){}
+CustomTensor::CustomTensor(void* raw_tensor){
+    tensor_ = new framework::Tensor();
+    auto *tensor = static_cast<framework::Tensor *>(tensor_);
+    auto *src_tensor = static_cast<framework::Tensor *>(raw_tensor);
+    tensor->ShareDataWith(*src_tensor);
+    place_ = place();
+}
 
 CustomTensor::~CustomTensor() {
     delete static_cast<framework::Tensor*>(tensor_);
