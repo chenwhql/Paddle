@@ -25,6 +25,9 @@ public:
     /// Generally it's only used for user to create CustomTensor.
     explicit CustomTensor(PaddlePlace place);
     explicit CustomTensor(void* raw_tensor);
+    ~CustomTensor();
+    CustomTensor(const CustomTensor& origin);
+    CustomTensor& operator=(const CustomTensor& origin);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
     /// Reshape must be called before calling mutable_data() or copy_from_cpu()
@@ -96,7 +99,7 @@ public:
     const PaddlePlace& place() const;
 
 private:
-    mutable std::shared_ptr<void> tensor_;
+    mutable void* tensor_;
     mutable PaddlePlace place_;
 };
 

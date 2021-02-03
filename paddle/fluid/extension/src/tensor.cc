@@ -21,22 +21,46 @@ namespace paddle {
 
 #define GET_CASTED_TENSOR                               \
   if (!tensor_) {                                       \
-    tensor_ = std::make_shared<framework::Tensor>(); \
+    tensor_ = new framework::Tensor(); \
   }                                                     \
-  auto *tensor = static_cast<framework::Tensor *>(tensor_.get());
+  auto *tensor = static_cast<framework::Tensor *>(tensor_);
 
 void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
 
+CustomTensor::CustomTensor(const CustomTensor& origin) {
+    place_ = origin.place();
+    tensor_ = new framework::Tensor();
+    auto *tensor = static_cast<framework::Tensor *>(tensor_);
+    auto *origin_tensor = static_cast<framework::Tensor *>(origin.tensor_);
+    tensor->ShareDataWith(*origin_tensor);
+}
+
 CustomTensor::CustomTensor(PaddlePlace place):
-        tensor_(std::make_shared<framework::Tensor>()),
+        tensor_(new framework::Tensor()),
         place_(place){};
 
 CustomTensor::CustomTensor(void* raw_tensor) :
         tensor_(static_cast<framework::Tensor*>(raw_tensor)),
         place_(PlaceType::kUNK){}
+
+CustomTensor::~CustomTensor() {
+    delete static_cast<framework::Tensor*>(tensor_);
+    tensor_ = nullptr;
+}
+
+CustomTensor& CustomTensor::operator=(const CustomTensor& other){
+    if (this != &other) // not a self-assignment
+    {
+        other.place_ = place();
+        auto *tensor = static_cast<framework::Tensor *>(tensor_);
+        auto *other_tensor = static_cast<framework::Tensor *>(other.tensor_);
+        other_tensor->ShareDataWith(*tensor);
+    }
+    return *this;
+}
 
 template <typename T>
 T *CustomTensor::mutable_data(const PaddlePlace& place) {
