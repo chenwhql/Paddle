@@ -224,9 +224,8 @@ const PaddlePlace& CustomTensor::place() const {
 }
 
 void CustomTensor::ShareDataWith(void* out_data){
-    static_cast<framework::LoDTensor*>(out_data)
-    ->ShareDataWith(
-            *static_cast<framework::LoDTensor*>(tensor_.get()));
+    GET_CASTED_TENSOR;
+    tensor->ShareDataWith(*static_cast<framework::LoDTensor*>(out_data));
 }
 
 int64_t CustomTensor::size() const{
