@@ -63,13 +63,39 @@ static T* DynLoad(void* handle, std::string name) {
 }  // namespace detail
 
 ////////////////// Kernel Define ////////////////////
+// convert PaddlePlace to platform::Place
+platform::Place PaddlePlaceToPlatformPlace(const PaddlePlace& pc){
+    if(pc.GetPlace() == PlaceType::kCPU){
+        return platform::Place(platform::CPUPlace());
+    }else if(pc.GetPlace() == PlaceType::kGPU){
+#ifdef PADDLE_WITH_CUDA
+        return platform::Place(
+            platform::CUDAPlace(platform::GetCurrentDeviceId()));
+#endif
+    }else{
+        PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+    }
+    return platform::Place();
+}
 
+PaddlePlace PlatformPlaceToPaddlePlace(const platform::Place& pc){
+    if(platform::is_cpu_place(pc)){
+        return PaddlePlace(PlaceType::kCPU);
+    }else if(platform::is_gpu_place(pc)){
+#ifdef PADDLE_WITH_CUDA
+        return PaddlePlace(PlaceType::kGPU);
+#endif
+    }else{
+        PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+    }
+    return PaddlePlace(PlaceType::kUNK);
+}
 // custom op kernel call function define
 
 static void RunKernelFunc(const framework::ExecutionContext& ctx,
                           paddle::KernelFunc func) {
   VLOG(1) << "Custom Operator: Start run KernelFunc.";
-  std::vector<const framework::Tensor*> ins;
+  std::vector<CustomTensor> custom_ins;
   for (auto name : ctx.InNameList()) {
     VLOG(1) << "Custom Operator: input name - " << name;
     auto* x = ctx.Input<Tensor>(name);
@@ -78,21 +104,16 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    auto* tmp_in = new framework::Tensor();
-    tmp_in->ShareDataWith(*x);
-    ins.push_back(tmp_in);
+    auto custom_in = CustomTensor(PlatformPlaceToPaddlePlace(x->place()));
+    custom_in.ShareDataWith((void *)x);
+    custom_ins.emplace_back(custom_in);
   }
 
-  std::vector<CustomTensor> custom_use_ins;
-  custom_use_ins.reserve(ins.size());
-  for(auto in : ins){
-      custom_use_ins.emplace_back(CustomTensor((void*)(in)));
-  }
   std::vector<boost::any> attrs;
 
   VLOG(0) << "Run ComputeFunc.";
 
-  auto outs = func(custom_use_ins, attrs);
+  auto outs = func(custom_ins, attrs);
 
   VLOG(1) << "Custom Operator: Share outputs into ExecutionContext.";
   auto out_name = ctx.OutNameList();
@@ -104,17 +125,6 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
   for (size_t i = 0; i < true_outs.size(); ++i) {
       outs.at(i).ShareDataWith((true_outs)[i]);
   }
-//  auto out_name = ctx.OutNameList();
-//  PADDLE_ENFORCE_EQ(
-//      out_name.size(), 1UL,
-//      platform::errors::InvalidArgument(
-//          "Custom operator can only hold 1 output as vector<Tensor>."));
-//  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
-//  for (size_t i = 0; i < true_outs.size(); ++i) {
-//      auto tmp = std::vector<std::vector<size_t>>({{1}});
-//      outs.at(i).SetLoD(tmp);
-//      outs.at(i).ShareDataWith((true_outs)[i]);
-//  }
 }
 
 //////////////////// Operator Define /////////////////
@@ -303,21 +313,6 @@ void RegisterOperator(const std::string& name, size_t input_num,
   // Last Step: insert
   OpInfoMap::Instance().Insert(name, info);
   OpInfoMap::Instance().Insert(name + "_grad", grad_info);
-}
-
-
-platform::Place PaddlePlaceToPlatformPlace(const PaddlePlace& pc){
-    if(pc.GetPlace() == PlaceType::kCPU){
-        return platform::Place(platform::CPUPlace());
-    }else if(pc.GetPlace() == PlaceType::kGPU){
-#ifdef PADDLE_WITH_CUDA
-        return platform::Place(
-                platform::CUDAPlace(platform::GetCurrentDeviceId()));
-#endif
-    }else{
-        PADDLE_THROW("Place for CustomOp is undefined in Paddle");
-    }
-    return platform::Place();
 }
 
 
