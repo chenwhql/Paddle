@@ -105,7 +105,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
     auto custom_in = CustomTensor(PlatformPlaceToPaddlePlace(x->place()));
-    custom_in.ShareDataWith((void *)x);
+    custom_in.ShareDataFrom((void *)x);
     custom_ins.emplace_back(custom_in);
   }
 
@@ -123,7 +123,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
           "Custom operator can only hold 1 output as vector<Tensor>."));
   auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
   for (size_t i = 0; i < true_outs.size(); ++i) {
-      outs.at(i).ShareDataWith((true_outs)[i]);
+      outs.at(i).ShareDataTo((true_outs)[i]);
   }
 }
 

@@ -81,10 +81,15 @@ public:
     PaddleDType type() const;
 
 
-    /// \brief Share data with another tensor.
+    /// \brief Share data TO another tensor.
     /// Use this to pass tensor from op to op
     /// \return void.
-    void ShareDataWith(void* tensor_out);
+    void ShareDataTo(void* other);
+
+    /// \brief Share data FROM another tensor.
+    /// Use this to pass tensor from op to op
+    /// \return void.
+    void ShareDataFrom(void* other);
 
     /// \brief Get the size of current tensor.
     /// Use this method to get the size of tensor

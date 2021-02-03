@@ -223,7 +223,13 @@ const PaddlePlace& CustomTensor::place() const {
     return place_;
 }
 
-void CustomTensor::ShareDataWith(void* out_data){
+void CustomTensor::ShareDataTo(void* other){
+    static_cast<framework::LoDTensor*>(other)
+    ->ShareDataWith(
+            *static_cast<framework::LoDTensor*>(tensor_.get()));
+}
+
+void CustomTensor::ShareDataFrom(void* out_data){
     GET_CASTED_TENSOR;
     tensor->ShareDataWith(*static_cast<framework::LoDTensor*>(out_data));
 }
