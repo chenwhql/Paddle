@@ -21,6 +21,7 @@ namespace paddle {
 #define PD_PRIVATE_CASE_TYPE_USING_HINT(NAME, enum_type, type, HINT, ...) \
   case enum_type: {                                                       \
     using HINT = type;                                                    \
+    std::cout<<"im here3"<<std::endl;                                     \
     return __VA_ARGS__();                                                 \
   }
 
@@ -30,6 +31,7 @@ namespace paddle {
 #define PD_DISPATCH_FLOATING_TYPES(TYPE, NAME, ...)                          \
   [&] {                                                                      \
     const auto& dtype = TYPE;                                                \
+    std::cout<<"im here2"<<std::endl;                                        \
     switch (dtype) {                                                         \
       PD_PRIVATE_CASE_TYPE(NAME, ::paddle::framework::proto::VarType::FP32,  \
                            float, __VA_ARGS__)                               \
