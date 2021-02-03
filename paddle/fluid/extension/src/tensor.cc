@@ -34,7 +34,9 @@ CustomTensor::CustomTensor(PaddlePlace place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
 
-CustomTensor::CustomTensor(void* raw_tensor): tensor_(raw_tensor), place_(PlaceType::kUNK){}
+CustomTensor::CustomTensor(void* raw_tensor):
+    tensor_(static_cast<framework::LoDTensor*>(raw_tensor)),
+    place_(PlaceType::kUNK){}
 
 
 template <typename T>
