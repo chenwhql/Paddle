@@ -103,9 +103,20 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
   auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
   for (size_t i = 0; i < true_outs.size(); ++i) {
       auto tmp = std::vector<std::vector<size_t>>({{1}});
-      outs.at(i).SetLoD(tmp);
+//      outs.at(i).SetLoD(tmp);
       outs.at(i).ShareDataWith((true_outs)[i]);
   }
+//  auto out_name = ctx.OutNameList();
+//  PADDLE_ENFORCE_EQ(
+//      out_name.size(), 1UL,
+//      platform::errors::InvalidArgument(
+//          "Custom operator can only hold 1 output as vector<Tensor>."));
+//  auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
+//  for (size_t i = 0; i < true_outs.size(); ++i) {
+//      auto tmp = std::vector<std::vector<size_t>>({{1}});
+//      outs.at(i).SetLoD(tmp);
+//      outs.at(i).ShareDataWith((true_outs)[i]);
+//  }
 }
 
 //////////////////// Operator Define /////////////////

@@ -21,9 +21,9 @@ namespace paddle {
 
 #define GET_CASTED_TENSOR                               \
   if (!tensor_) {                                       \
-    tensor_ = std::make_shared<framework::LoDTensor>(); \
+    tensor_ = std::make_shared<framework::Tensor>(); \
   }                                                     \
-  auto *tensor = static_cast<framework::LoDTensor *>(tensor_.get());
+  auto *tensor = static_cast<framework::Tensor *>(tensor_.get());
 
 void CustomTensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
@@ -31,11 +31,11 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
 }
 
 CustomTensor::CustomTensor(PaddlePlace place):
-        tensor_(std::make_shared<framework::LoDTensor>()),
+        tensor_(std::make_shared<framework::Tensor>()),
         place_(place){};
 
 CustomTensor::CustomTensor(void* raw_tensor) :
-        tensor_(static_cast<framework::LoDTensor*>(raw_tensor)),
+        tensor_(static_cast<framework::Tensor*>(raw_tensor)),
         place_(PlaceType::kUNK){}
 
 template <typename T>
@@ -190,23 +190,23 @@ std::vector<int> CustomTensor::shape() const {
     return framework::vectorize<int>(tensor->dims());
 }
 
-void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
-    GET_CASTED_TENSOR;
-    framework::LoD lod;
-    for (auto &level : x) {
-        lod.emplace_back(level);
-    }
-    tensor->set_lod(lod);
-}
-
-std::vector<std::vector<size_t>> CustomTensor::lod() const {
-    GET_CASTED_TENSOR;
-    std::vector<std::vector<size_t>> res;
-    for (auto &level : tensor->lod()) {
-        res.emplace_back(level);
-    }
-    return res;
-}
+//void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
+//    GET_CASTED_TENSOR;
+//    framework::LoD lod;
+//    for (auto &level : x) {
+//        lod.emplace_back(level);
+//    }
+//    tensor->set_lod(lod);
+//}
+//
+//std::vector<std::vector<size_t>> CustomTensor::lod() const {
+//    GET_CASTED_TENSOR;
+//    std::vector<std::vector<size_t>> res;
+//    for (auto &level : tensor->lod()) {
+//        res.emplace_back(level);
+//    }
+//    return res;
+//}
 
 const PaddlePlace& CustomTensor::place() const {
     GET_CASTED_TENSOR;
@@ -223,9 +223,9 @@ const PaddlePlace& CustomTensor::place() const {
 }
 
 void CustomTensor::ShareDataWith(void* out_data){
-    static_cast<framework::LoDTensor*>(out_data)
+    static_cast<framework::Tensor*>(out_data)
     ->ShareDataWith(
-            *static_cast<framework::LoDTensor*>(tensor_.get()));
+            *static_cast<framework::Tensor*>(tensor_.get()));
 }
 
 int64_t CustomTensor::size() const{

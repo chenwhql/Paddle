@@ -66,13 +66,13 @@ public:
     /// \brief Return the shape of the Tensor.
     std::vector<int> shape() const;
 
-    /// \brief Set lod info of the tensor.
-    /// More about LOD can be seen here:
-    ///  https://www.paddlepaddle.org.cn/documentation/docs/zh/beginners_guide/basic_concept/lod_tensor.html#lodtensor
-    /// \param x the lod info.
-    void SetLoD(const std::vector<std::vector<size_t>>& x);
-    /// \brief Return the lod info of the tensor.
-    std::vector<std::vector<size_t>> lod() const;
+//    /// \brief Set lod info of the tensor.
+//    /// More about LOD can be seen here:
+//    ///  https://www.paddlepaddle.org.cn/documentation/docs/zh/beginners_guide/basic_concept/lod_tensor.html#lodtensor
+//    /// \param x the lod info.
+//    void SetLoD(const std::vector<std::vector<size_t>>& x);
+//    /// \brief Return the lod info of the tensor.
+//    std::vector<std::vector<size_t>> lod() const;
 
     /// \brief Return the data type of the tensor.
     /// It's usually used to get the output tensor data type.
