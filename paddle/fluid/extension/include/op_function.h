@@ -22,7 +22,7 @@ limitations under the License. */
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
+#include <sstream>
 #include "paddle/fluid/extension/include/tensor.h"
 #include "paddle/fluid/extension/include/device.h"
 
@@ -126,9 +126,8 @@ struct KernelFuncImpl<Return (*)(Args...), impl_fn> {
                                                             attr_idx + 1>(
             inputs, attrs, pargs..., arg);
       } catch (boost::bad_any_cast&) {
-        std::ostringstream err;
-        err << "Attribute cast error in custom operator. Expected int value.";
-        throw std::runtime_error(err.str());
+        throw std::runtime_error(
+            "Attribute cast error in custom operator. Expected int value.");
       }
     }
   };
@@ -199,17 +198,17 @@ class OpFunction {
  public:
   OpFunction() = default;
 
-  void SetForwardFunc(const KernelFunc& forward_func) {
+  void SetForwardFunc(KernelFunc&& forward_func) {
     forward_func_ = forward_func;
   }
   const KernelFunc& GetForwardFunc() const { return forward_func_; }
 
-  void SetBackwardFunc(const KernelFunc& backward_func) {
+  void SetBackwardFunc(KernelFunc&& backward_func) {
     backward_func_ = backward_func;
   }
   const KernelFunc& GetBackwardFunc() const { return backward_func_; }
 
-  void SetInferShapeFunc(const InferShapeFunc& infer_shape_func) {
+  void SetInferShapeFunc(InferShapeFunc&& infer_shape_func) {
     infer_shape_func_ = infer_shape_func;
   }
   const InferShapeFunc& GetInferShapeFunc() const { return infer_shape_func_; }
@@ -241,13 +240,16 @@ class OpFunctionMap {
   }
 
   void Insert(const std::string& op_type, const OpFunction& op_func) {
-//    PADDLE_ENFORCE_NE(map_.find(op_type) != map_.end(), true,
-//                      platform::errors::AlreadyExists(
-//                          "Operator (%s) has been registered.", op_type));
+    if (map_.find(op_type) != map_.end()) {
+      throw std::runtime_error("Operator `" + op_type +
+                               "` has been registered.");
+    }
     map_.insert({op_type, op_func});
   }
 
-  const std::unordered_map<std::string, OpFunction>& GetMap() { return map_; }
+  const std::unordered_map<std::string, OpFunction>& GetMap() const {
+    return map_;
+  }
 
  private:
   OpFunctionMap() = default;
@@ -271,19 +273,22 @@ struct OperatorFunctionRegistrar : public Registrar {
                             InferShapeFunc&& infer_shape_func) {
     OpFunction op_func;
     FuncInfo func_info = traits_func();
+
     op_func.SetNumTensorArgs(func_info.first);
     op_func.SetNumAttributes(func_info.second);
-    op_func.SetForwardFunc(forward_func);
-    op_func.SetBackwardFunc(backward_func);
-    op_func.SetInferShapeFunc(infer_shape_func);
+
+    op_func.SetForwardFunc(std::forward<KernelFunc>(forward_func));
+    op_func.SetBackwardFunc(std::forward<KernelFunc>(backward_func));
+    op_func.SetInferShapeFunc(std::forward<InferShapeFunc>(infer_shape_func));
+
     OpFunctionMap::Instance().Insert(op_type, op_func);
   }
 };
 
 /////////////////////// Op register marco /////////////////////////
 
-#define ADD_OPERATOR(op_type, traits_func, forward_func, backward_func,        \
-                     infer_shape_func)                                         \
+#define BUILD_OPERATOR(op_type, traits_func, forward_func, backward_func,      \
+                       infer_shape_func)                                       \
   static ::paddle::OperatorFunctionRegistrar                                   \
       __operator_function_registrar_##op_type##__(#op_type, traits_func,       \
                                                   forward_func, backward_func, \
