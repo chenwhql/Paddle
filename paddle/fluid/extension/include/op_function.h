@@ -23,6 +23,7 @@ limitations under the License. */
 #include <utility>
 #include <vector>
 #include <sstream>
+#include <boost/any.hpp>
 #include "paddle/fluid/extension/include/tensor.h"
 #include "paddle/fluid/extension/include/device.h"
 
