@@ -61,7 +61,7 @@ std::vector<paddle::CustomTensor> relu_cpu_backward(const paddle::CustomTensor& 
                                    grad_out.data<data_t>(),
                                    out.data<data_t>(),
                                    grad_x.mutable_data<data_t>(x.place()),
-                                   out.numel());
+                                   out.size());
                              }));
 
   return {grad_x};
