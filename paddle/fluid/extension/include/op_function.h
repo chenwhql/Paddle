@@ -241,9 +241,9 @@ class OpFunctionMap {
   }
 
   void Insert(const std::string& op_type, const OpFunction& op_func) {
-    PADDLE_ENFORCE_NE(map_.find(op_type) != map_.end(), true,
-                      platform::errors::AlreadyExists(
-                          "Operator (%s) has been registered.", op_type));
+//    PADDLE_ENFORCE_NE(map_.find(op_type) != map_.end(), true,
+//                      platform::errors::AlreadyExists(
+//                          "Operator (%s) has been registered.", op_type));
     map_.insert({op_type, op_func});
   }
 
