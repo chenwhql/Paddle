@@ -96,7 +96,7 @@ PlaceType PlatformPlaceToPaddlePlace(const platform::Place& pc){
 static void RunKernelFunc(const framework::ExecutionContext& ctx,
                           paddle::KernelFunc func) {
   VLOG(1) << "Custom Operator: Start run KernelFunc.";
-  std::vector<CustomTensor> custom_ins;
+  std::vector<paddle::Tensor> custom_ins;
   for (auto name : ctx.InNameList()) {
     VLOG(1) << "Custom Operator: input name - " << name;
     auto* x = ctx.Input<Tensor>(name);
@@ -105,7 +105,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    auto custom_in = CustomTensor(PlatformPlaceToPaddlePlace(x->place()));
+    auto custom_in = paddle::Tensor(PlatformPlaceToPaddlePlace(x->place()));
     CustomTensorUtils::ShareDataFrom((void *)x, custom_in);
     custom_ins.emplace_back(custom_in);
   }

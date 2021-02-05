@@ -20,11 +20,11 @@ limitations under the License. */
 
 namespace paddle {
 class CustomTensorUtils;
-class CustomTensor{
+class Tensor{
 public:
-    /// \brief Construct a CustomTensor on None Place for CustomOp.
-    /// Generally it's only used for user to create CustomTensor.
-    explicit CustomTensor(const PlaceType& place);
+    /// \brief Construct a Tensor on None Place for CustomOp.
+    /// Generally it's only used for user to create Tensor.
+    explicit Tensor(const PlaceType& place);
     /// \brief Reset the shape of the tensor.
     /// Generally it's only used for the input tensor.
     /// Reshape must be called before calling mutable_data() or copy_from_cpu()

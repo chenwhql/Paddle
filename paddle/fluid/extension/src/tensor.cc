@@ -26,28 +26,28 @@ namespace paddle {
   }                                                                   \
   auto *tensor = static_cast<framework::LoDTensor *>(tensor_.get());
 
-void CustomTensor::Reshape(const std::vector<int> &shape) {
+void Tensor::Reshape(const std::vector<int> &shape) {
     GET_CASTED_TENSOR
     tensor->Resize(framework::make_ddim(shape));
 }
 
-CustomTensor::CustomTensor(const PlaceType& place):
+Tensor::Tensor(const PlaceType& place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
 
 template <typename T>
-T *CustomTensor::mutable_data(const PlaceType& place) {
+T *Tensor::mutable_data(const PlaceType& place) {
     place_ = place;
     return mutable_data<T>();
 }
 
 template <typename T>
-T *CustomTensor::mutable_data() {
+T *Tensor::mutable_data() {
     GET_CASTED_TENSOR
     PADDLE_ENFORCE_GT(
             tensor->numel(), 0,
             platform::errors::PreconditionNotMet(
-                    "You should call CustomTensor::Reshape(const std::vector<int> "
+                    "You should call Tensor::Reshape(const std::vector<int> "
                     "&shape)"
                     "function before retrieving mutable_data from input tensor."));
     switch (static_cast<int>(place_)) {
@@ -67,13 +67,13 @@ T *CustomTensor::mutable_data() {
 }
     
 template <typename T>
-T *CustomTensor::data() const {
+T *Tensor::data() const {
     GET_CASTED_TENSOR;
     auto *res = tensor->data<T>();
     return res;
 }
 
-PaddleDType CustomTensor::type() const {
+PaddleDType Tensor::type() const {
     GET_CASTED_TENSOR;
     auto type = tensor->type();
     if (type == framework::proto::VarType::FP32) {
@@ -91,11 +91,11 @@ PaddleDType CustomTensor::type() const {
 }
 
 template <typename T>
-void CustomTensor::copy_from_cpu(const T *data) {
+void Tensor::copy_from_cpu(const T *data) {
     GET_CASTED_TENSOR;
     PADDLE_ENFORCE_GE(tensor->numel(), 0,
                       platform::errors::PreconditionNotMet(
-                              "You should call CustomTensor::Reshape(const "
+                              "You should call Tensor::Reshape(const "
                               "std::vector<int> &shape)"
                               "function before copying data from cpu."));
     size_t ele_size = tensor->numel() * sizeof(T);
@@ -122,7 +122,7 @@ void CustomTensor::copy_from_cpu(const T *data) {
 }
 
 template <typename T>
-void CustomTensor::copy_to_cpu(T *data) {
+void Tensor::copy_to_cpu(T *data) {
     GET_CASTED_TENSOR;
     auto ele_num = tensor->numel();
     auto *t_data = tensor->data<T>();
@@ -147,47 +147,47 @@ void CustomTensor::copy_to_cpu(T *data) {
     }
 }
 
-template  void CustomTensor::copy_from_cpu<float>(const float *data);
-template  void CustomTensor::copy_from_cpu<double>(const double *data);
-template  void CustomTensor::copy_from_cpu<int64_t>(const int64_t *data);
-template  void CustomTensor::copy_from_cpu<int32_t>(const int32_t *data);
-template  void CustomTensor::copy_from_cpu<uint8_t>(const uint8_t *data);
-template  void CustomTensor::copy_from_cpu<int8_t>(const int8_t *data);
+template  void Tensor::copy_from_cpu<float>(const float *data);
+template  void Tensor::copy_from_cpu<double>(const double *data);
+template  void Tensor::copy_from_cpu<int64_t>(const int64_t *data);
+template  void Tensor::copy_from_cpu<int32_t>(const int32_t *data);
+template  void Tensor::copy_from_cpu<uint8_t>(const uint8_t *data);
+template  void Tensor::copy_from_cpu<int8_t>(const int8_t *data);
 
-template  void CustomTensor::copy_to_cpu<float>(float *data);
-template  void CustomTensor::copy_to_cpu<double>(double *data);
-template  void CustomTensor::copy_to_cpu<int64_t>(int64_t *data);
-template  void CustomTensor::copy_to_cpu<int32_t>(int32_t *data);
-template  void CustomTensor::copy_to_cpu<uint8_t>(uint8_t *data);
-template  void CustomTensor::copy_to_cpu<int8_t>(int8_t *data);
+template  void Tensor::copy_to_cpu<float>(float *data);
+template  void Tensor::copy_to_cpu<double>(double *data);
+template  void Tensor::copy_to_cpu<int64_t>(int64_t *data);
+template  void Tensor::copy_to_cpu<int32_t>(int32_t *data);
+template  void Tensor::copy_to_cpu<uint8_t>(uint8_t *data);
+template  void Tensor::copy_to_cpu<int8_t>(int8_t *data);
 
-template  float *CustomTensor::data<float>() const;
-template  double *CustomTensor::data<double>() const;
-template  int64_t *CustomTensor::data<int64_t>() const;
-template  int32_t *CustomTensor::data<int32_t>() const;
-template  uint8_t *CustomTensor::data<uint8_t>() const;
-template  int8_t *CustomTensor::data<int8_t>() const;
+template  float *Tensor::data<float>() const;
+template  double *Tensor::data<double>() const;
+template  int64_t *Tensor::data<int64_t>() const;
+template  int32_t *Tensor::data<int32_t>() const;
+template  uint8_t *Tensor::data<uint8_t>() const;
+template  int8_t *Tensor::data<int8_t>() const;
 
-template  float *CustomTensor::mutable_data<float>();
-template  double *CustomTensor::mutable_data<double>();
-template  int64_t *CustomTensor::mutable_data<int64_t>();
-template  int32_t *CustomTensor::mutable_data<int32_t>();
-template  uint8_t *CustomTensor::mutable_data<uint8_t>();
-template  int8_t *CustomTensor::mutable_data<int8_t>();
+template  float *Tensor::mutable_data<float>();
+template  double *Tensor::mutable_data<double>();
+template  int64_t *Tensor::mutable_data<int64_t>();
+template  int32_t *Tensor::mutable_data<int32_t>();
+template  uint8_t *Tensor::mutable_data<uint8_t>();
+template  int8_t *Tensor::mutable_data<int8_t>();
 
-template  float *CustomTensor::mutable_data<float>(const PlaceType& place);
-template  double *CustomTensor::mutable_data<double>(const PlaceType& place);
-template  int64_t *CustomTensor::mutable_data<int64_t>(const PlaceType& place);
-template  int32_t *CustomTensor::mutable_data<int32_t>(const PlaceType& place);
-template  uint8_t *CustomTensor::mutable_data<uint8_t>(const PlaceType& place);
-template  int8_t *CustomTensor::mutable_data<int8_t>(const PlaceType& place);
+template  float *Tensor::mutable_data<float>(const PlaceType& place);
+template  double *Tensor::mutable_data<double>(const PlaceType& place);
+template  int64_t *Tensor::mutable_data<int64_t>(const PlaceType& place);
+template  int32_t *Tensor::mutable_data<int32_t>(const PlaceType& place);
+template  uint8_t *Tensor::mutable_data<uint8_t>(const PlaceType& place);
+template  int8_t *Tensor::mutable_data<int8_t>(const PlaceType& place);
 
-std::vector<int> CustomTensor::shape() const {
+std::vector<int> Tensor::shape() const {
     GET_CASTED_TENSOR
     return framework::vectorize<int>(tensor->dims());
 }
 
-void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
+void Tensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
     GET_CASTED_TENSOR;
     framework::LoD lod;
     for (auto &level : x) {
@@ -196,7 +196,7 @@ void CustomTensor::SetLoD(const std::vector<std::vector<size_t>> &x) {
     tensor->set_lod(lod);
 }
 
-std::vector<std::vector<size_t>> CustomTensor::lod() const {
+std::vector<std::vector<size_t>> Tensor::lod() const {
     GET_CASTED_TENSOR;
     std::vector<std::vector<size_t>> res;
     for (auto &level : tensor->lod()) {
@@ -205,27 +205,27 @@ std::vector<std::vector<size_t>> CustomTensor::lod() const {
     return res;
 }
 
-const PlaceType& CustomTensor::place() const {
+const PlaceType& Tensor::place() const {
     GET_CASTED_TENSOR;
     if(platform::is_cpu_place(tensor->place())){
         place_ = PlaceType::kCPU;
     }else if(platform::is_gpu_place(tensor->place())){
         place_ = PlaceType::kGPU;
     }else{
-        PADDLE_THROW("Current CustomTensor hold unsupported Place Type, Please Init it"
-                     "using CustomTensor::mutable_data<T>(PaddlePlace) which T is"
+        PADDLE_THROW("Current Tensor hold unsupported Place Type, Please Init it"
+                     "using Tensor::mutable_data<T>(PaddlePlace) which T is"
                      "either Place::kCPU or Place::kGPU");
     }
     return place_;
 }
 
-void CustomTensorUtils::ShareDataTo(const CustomTensor& src, void* dst){
+void CustomTensorUtils::ShareDataTo(const Tensor& src, void* dst){
     static_cast<framework::LoDTensor*>(dst)
     ->ShareDataWith(
             *static_cast<framework::LoDTensor*>(src.tensor_.get()));
 }
 
-void CustomTensorUtils::ShareDataFrom(void* src, const CustomTensor& dst){
+void CustomTensorUtils::ShareDataFrom(void* src, const Tensor& dst){
     if (!dst.tensor_) {
         dst.tensor_ = std::make_shared<framework::LoDTensor>();
     }
@@ -233,7 +233,7 @@ void CustomTensorUtils::ShareDataFrom(void* src, const CustomTensor& dst){
     tensor->ShareDataWith(*static_cast<framework::LoDTensor*>(src));
 }
 
-int64_t CustomTensor::size() const{
+int64_t Tensor::size() const{
     GET_CASTED_TENSOR;
     return tensor->numel();
 }

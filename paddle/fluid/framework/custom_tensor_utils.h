@@ -22,12 +22,12 @@ public:
     /// \brief Share data TO another tensor.
     /// Use this to pass tensor from op to op
     /// \return void.
-    static void ShareDataTo(const CustomTensor& src, void* dst);
+    static void ShareDataTo(const Tensor& src, void* dst);
 
     /// \brief Share data FROM another tensor.
     /// Use this to pass tensor from op to op
     /// \return void.
-    static void ShareDataFrom(void* src, const CustomTensor& dst);
+    static void ShareDataFrom(void* src, const Tensor& dst);
 };
 }  // namespace paddle
 
