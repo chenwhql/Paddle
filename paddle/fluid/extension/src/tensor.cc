@@ -19,10 +19,10 @@ limitations under the License. */
 #include "paddle/fluid/platform/gpu_info.h"
 namespace paddle {
 
-#define GET_CASTED_TENSOR                                     \
-  if (!tensor_) {                                             \
-    tensor_ = std::make_shared<framework::LoDTensor>();          \
-  }                                                           \
+#define GET_CASTED_TENSOR                                             \
+  if (!tensor_) {                                                     \
+    tensor_ = std::make_shared<framework::LoDTensor>();               \
+  }                                                                   \
   auto *tensor = static_cast<framework::LoDTensor *>(tensor_.get());
 
 void CustomTensor::Reshape(const std::vector<int> &shape) {
@@ -33,11 +33,6 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
 CustomTensor::CustomTensor(const PlaceType& place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
-
-CustomTensor::CustomTensor(void* raw_tensor):
-    tensor_(static_cast<framework::LoDTensor*>(raw_tensor)),
-    place_(PlaceType::kUNK){}
-
 
 template <typename T>
 T *CustomTensor::mutable_data(const PlaceType& place) {
