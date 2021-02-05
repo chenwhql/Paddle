@@ -64,10 +64,10 @@ static T* DynLoad(void* handle, std::string name) {
 
 ////////////////// Kernel Define ////////////////////
 // convert PaddlePlace to platform::Place
-platform::Place PaddlePlaceToPlatformPlace(const PaddlePlace& pc){
-    if(pc.GetPlace() == PlaceType::kCPU){
+platform::Place PaddlePlaceToPlatformPlace(const PlaceType& pc){
+    if(pc == PlaceType::kCPU){
         return platform::Place(platform::CPUPlace());
-    }else if(pc.GetPlace() == PlaceType::kGPU){
+    }else if(pc == PlaceType::kGPU){
 #ifdef PADDLE_WITH_CUDA
         return platform::Place(
             platform::CUDAPlace(platform::GetCurrentDeviceId()));
@@ -78,17 +78,17 @@ platform::Place PaddlePlaceToPlatformPlace(const PaddlePlace& pc){
     return platform::Place();
 }
 
-PaddlePlace PlatformPlaceToPaddlePlace(const platform::Place& pc){
+PlaceType PlatformPlaceToPaddlePlace(const platform::Place& pc){
     if(platform::is_cpu_place(pc)){
-        return PaddlePlace(PlaceType::kCPU);
+        return PlaceType::kCPU;
     }else if(platform::is_gpu_place(pc)){
 #ifdef PADDLE_WITH_CUDA
-        return PaddlePlace(PlaceType::kGPU);
+        return PlaceType::kGPU;
 #endif
     }else{
         PADDLE_THROW("Place for CustomOp is undefined in Paddle");
     }
-    return PaddlePlace(PlaceType::kUNK);
+    return PlaceType::kUNK;
 }
 // custom op kernel call function define
 
@@ -319,7 +319,7 @@ void RegisterOperator(const std::string& name, size_t input_num,
 void RegisterOperatorKernelWithPlace(const std::string& name,
                                      const paddle::KernelFunc& kernel_func,
                                      const proto::VarType::Type type,
-                                     const PaddlePlace& place) {
+                                     const PlaceType& place) {
   OpKernelType key(type, PaddlePlaceToPlatformPlace(place));
   VLOG(1) << "Custom Operator: op kernel key: " << key;
   OperatorWithKernel::AllOpKernels()[name][key] =
@@ -340,9 +340,9 @@ void RegisterOperatorKernel(const std::string& name,
   // But this is not entirely correct, if user only give a cpu kernel,
   // but call api in gpu device, it will cause error.
   RegisterOperatorKernelWithPlace(name, kernel_func, proto::VarType::RAW,
-                                  PaddlePlace(PlaceType::kCPU));
+                                  PlaceType::kCPU);
   RegisterOperatorKernelWithPlace(name, kernel_func, proto::VarType::RAW,
-                                  PaddlePlace(PlaceType::kGPU));
+                                  PlaceType::kGPU);
 }
 
 void RegisterOperatorWithOpFunctionMap(

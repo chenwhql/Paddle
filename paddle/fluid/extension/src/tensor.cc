@@ -30,7 +30,7 @@ void CustomTensor::Reshape(const std::vector<int> &shape) {
     tensor->Resize(framework::make_ddim(shape));
 }
 
-CustomTensor::CustomTensor(PaddlePlace place):
+CustomTensor::CustomTensor(const PlaceType& place):
         tensor_(std::make_shared<framework::LoDTensor>()),
         place_(place){};
 
@@ -40,7 +40,7 @@ CustomTensor::CustomTensor(void* raw_tensor):
 
 
 template <typename T>
-T *CustomTensor::mutable_data(const PaddlePlace& place) {
+T *CustomTensor::mutable_data(const PlaceType& place) {
     place_ = place;
     return mutable_data<T>();
 }
@@ -54,7 +54,7 @@ T *CustomTensor::mutable_data() {
                     "You should call CustomTensor::Reshape(const std::vector<int> "
                     "&shape)"
                     "function before retrieving mutable_data from input tensor."));
-    switch (static_cast<int>(place_.GetPlace())) {
+    switch (static_cast<int>(place_)) {
         case static_cast<int>(PlaceType::kCPU): {
             return tensor->mutable_data<T>(platform::CPUPlace());
         }
@@ -66,7 +66,7 @@ T *CustomTensor::mutable_data() {
         }
         default:
             PADDLE_THROW(platform::errors::Unavailable("CustomOp unsupported place: %d",
-                                                   static_cast<int>(place_.GetPlace())));
+                                                   static_cast<int>(place_)));
     }
 }
     
@@ -104,7 +104,7 @@ void CustomTensor::copy_from_cpu(const T *data) {
                               "function before copying data from cpu."));
     size_t ele_size = tensor->numel() * sizeof(T);
 
-    if (place_.GetPlace() == PlaceType::kCPU) {
+    if (place_ == PlaceType::kCPU) {
         auto *t_data = tensor->mutable_data<T>(platform::CPUPlace());
         std::memcpy(static_cast<void *>(t_data), data, ele_size);
     } else {
@@ -116,8 +116,8 @@ void CustomTensor::copy_from_cpu(const T *data) {
     auto *dev_ctx =
         static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
 
-memory::Copy(gpu_place, static_cast<void *>(t_data), platform::CPUPlace(),
-             data, ele_size, dev_ctx->stream());
+    memory::Copy(gpu_place, static_cast<void *>(t_data), platform::CPUPlace(),
+                 data, ele_size, dev_ctx->stream());
 #else
         PADDLE_THROW(platform::errors::Unavailable(
                 "Not compiled with CUDA, should not reach here."));
@@ -137,13 +137,13 @@ void CustomTensor::copy_to_cpu(T *data) {
     } else {
 #ifdef PADDLE_WITH_CUDA
         platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
-auto gpu_place = BOOST_GET_CONST(platform::CUDAPlace, t_place);
-auto *dev_ctx =
-    static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
-memory::Copy(platform::CPUPlace(), static_cast<void *>(data), gpu_place,
-             t_data, ele_num * sizeof(T), dev_ctx->stream());
+        auto gpu_place = BOOST_GET_CONST(platform::CUDAPlace, t_place);
+        auto *dev_ctx =
+            static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
+        memory::Copy(platform::CPUPlace(), static_cast<void *>(data), gpu_place,
+                     t_data, ele_num * sizeof(T), dev_ctx->stream());
 
-cudaStreamSynchronize(dev_ctx->stream());
+        cudaStreamSynchronize(dev_ctx->stream());
 #else
         PADDLE_THROW(platform::errors::Unavailable(
                 "Not compile with CUDA, should not reach here."));
@@ -179,12 +179,12 @@ template  int32_t *CustomTensor::mutable_data<int32_t>();
 template  uint8_t *CustomTensor::mutable_data<uint8_t>();
 template  int8_t *CustomTensor::mutable_data<int8_t>();
 
-template  float *CustomTensor::mutable_data<float>(const PaddlePlace& place);
-template  double *CustomTensor::mutable_data<double>(const PaddlePlace& place);
-template  int64_t *CustomTensor::mutable_data<int64_t>(const PaddlePlace& place);
-template  int32_t *CustomTensor::mutable_data<int32_t>(const PaddlePlace& place);
-template  uint8_t *CustomTensor::mutable_data<uint8_t>(const PaddlePlace& place);
-template  int8_t *CustomTensor::mutable_data<int8_t>(const PaddlePlace& place);
+template  float *CustomTensor::mutable_data<float>(const PlaceType& place);
+template  double *CustomTensor::mutable_data<double>(const PlaceType& place);
+template  int64_t *CustomTensor::mutable_data<int64_t>(const PlaceType& place);
+template  int32_t *CustomTensor::mutable_data<int32_t>(const PlaceType& place);
+template  uint8_t *CustomTensor::mutable_data<uint8_t>(const PlaceType& place);
+template  int8_t *CustomTensor::mutable_data<int8_t>(const PlaceType& place);
 
 std::vector<int> CustomTensor::shape() const {
     GET_CASTED_TENSOR
@@ -209,12 +209,12 @@ std::vector<std::vector<size_t>> CustomTensor::lod() const {
     return res;
 }
 
-const PaddlePlace& CustomTensor::place() const {
+const PlaceType& CustomTensor::place() const {
     GET_CASTED_TENSOR;
     if(platform::is_cpu_place(tensor->place())){
-        place_ = PaddlePlace(PlaceType::kCPU);
+        place_ = PlaceType::kCPU;
     }else if(platform::is_gpu_place(tensor->place())){
-        place_ = PaddlePlace(PlaceType::kGPU);
+        place_ = PlaceType::kGPU;
     }else{
         PADDLE_THROW("Current CustomTensor hold unsupported Place Type, Please Init it"
                      "using CustomTensor::mutable_data<T>(PaddlePlace) which T is"
