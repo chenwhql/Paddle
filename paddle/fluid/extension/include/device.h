@@ -18,15 +18,4 @@ namespace paddle {
 
 enum class PlaceType { kUNK = -1, kCPU, kGPU };
 
-//class PaddlePlace {
-//public:
-//    PaddlePlace() : pc_(PlaceType::kUNK){};
-//    explicit PaddlePlace(PlaceType pc) : pc_(pc){}
-//    const PlaceType& GetPlace() const { return pc_; };
-//    void SetPlace(const PlaceType& place) { pc_ = place; }
-//
-//protected:
-//    PlaceType pc_;
-//};
-
 }  // namespace paddle
