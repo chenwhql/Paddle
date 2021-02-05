@@ -33,6 +33,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/tensor.h"
 #include "paddle/fluid/platform/dynload/dynamic_loader.h"
 #include "paddle/fluid/extension/include/tensor.h"
+#include "paddle/fluid/framework/custom_tensor_utils.h"
 #include "paddle/fluid/platform/gpu_info.h"
 
 namespace paddle {
@@ -105,7 +106,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
     auto custom_in = CustomTensor(PlatformPlaceToPaddlePlace(x->place()));
-    custom_in.ShareDataFrom((void *)x);
+    CustomTensorUtils::ShareDataFrom((void *)x, custom_in);
     custom_ins.emplace_back(custom_in);
   }
 
@@ -123,7 +124,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
           "Custom operator can only hold 1 output as vector<Tensor>."));
   auto true_outs = ctx.MultiOutput<Tensor>(out_name[0]);
   for (size_t i = 0; i < true_outs.size(); ++i) {
-      outs.at(i).ShareDataTo((true_outs)[i]);
+      paddle::CustomTensorUtils::ShareDataTo(outs.at(i), (true_outs)[i]);
   }
 }
 

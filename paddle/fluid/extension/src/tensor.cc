@@ -17,6 +17,7 @@ limitations under the License. */
 #include "paddle/fluid/memory/memcpy.h"
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/fluid/platform/gpu_info.h"
+#include "paddle/fluid/framework/custom_tensor_utils.h"
 namespace paddle {
 
 #define GET_CASTED_TENSOR                                             \
@@ -218,15 +219,18 @@ const PlaceType& CustomTensor::place() const {
     return place_;
 }
 
-void CustomTensor::ShareDataTo(void* other){
-    static_cast<framework::LoDTensor*>(other)
+void CustomTensorUtils::ShareDataTo(const CustomTensor& src, void* dst){
+    static_cast<framework::LoDTensor*>(dst)
     ->ShareDataWith(
-            *static_cast<framework::LoDTensor*>(tensor_.get()));
+            *static_cast<framework::LoDTensor*>(src.tensor_.get()));
 }
 
-void CustomTensor::ShareDataFrom(void* out_data){
-    GET_CASTED_TENSOR;
-    tensor->ShareDataWith(*static_cast<framework::LoDTensor*>(out_data));
+void CustomTensorUtils::ShareDataFrom(void* src, const CustomTensor& dst){
+    if (!dst.tensor_) {
+        dst.tensor_ = std::make_shared<framework::LoDTensor>();
+    }
+    auto *tensor = static_cast<framework::LoDTensor *>(dst.tensor_.get());
+    tensor->ShareDataWith(*static_cast<framework::LoDTensor*>(src));
 }
 
 int64_t CustomTensor::size() const{

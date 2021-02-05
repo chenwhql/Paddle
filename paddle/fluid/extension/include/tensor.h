@@ -19,7 +19,7 @@ limitations under the License. */
 #include <memory>
 
 namespace paddle {
-
+class CustomTensorUtils;
 class CustomTensor{
 public:
     /// \brief Construct a CustomTensor on None Place for CustomOp.
@@ -79,17 +79,6 @@ public:
     /// \return The data type of the tensor.
     PaddleDType type() const;
 
-
-    /// \brief Share data TO another tensor.
-    /// Use this to pass tensor from op to op
-    /// \return void.
-    void ShareDataTo(void* other);
-
-    /// \brief Share data FROM another tensor.
-    /// Use this to pass tensor from op to op
-    /// \return void.
-    void ShareDataFrom(void* other);
-
     /// \brief Get the size of current tensor.
     /// Use this method to get the size of tensor
     /// \return int64_t.
@@ -101,6 +90,7 @@ public:
     const PlaceType& place() const;
 
 private:
+    friend class CustomTensorUtils;
     mutable std::shared_ptr<void> tensor_;
     mutable PlaceType place_;
 };
