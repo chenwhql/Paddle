@@ -16,20 +16,6 @@
 #include "paddle/extension.h"
 #include "paddle/fluid/framework/lod_tensor.h"
 
-paddle::Tensor InitGPUTensorForTest() {
-  std::vector<int> tensor_shape = {5, 5};
-  auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
-  t1.reshape(tensor_shape);
-  auto* p_data_ptr = t1.mutable_data<float>(paddle::PlaceType::kGPU);
-  std::cout << "im 1" << std::endl;
-  for (int64_t i = 0; i < t1.size(); i++) {
-    std::cout << "im 1.1" << std::endl;
-    p_data_ptr[i] = 5;
-  }
-  std::cout << "im 2" << std::endl;
-  return t1;
-}
-
 paddle::Tensor InitCPUTensorForTest() {
   std::vector<int> tensor_shape = {5, 5};
   auto t1 = paddle::Tensor(paddle::PlaceType::kCPU);
@@ -42,7 +28,7 @@ paddle::Tensor InitCPUTensorForTest() {
 }
 template <typename T>
 void TestCopyToCpuFromGpuTensor() {
-  auto t1 = InitGPUTensorForTest();
+  auto t1 = InitCPUTensorForTest();
   std::cout << "im 3" << std::endl;
   auto t1_cpu_cp = t1.copy_to_cpu<T>();
   std::cout << "im 4" << std::endl;
@@ -56,12 +42,14 @@ void TestCopyToCpuFromGpuTensor() {
 
 template <typename T>
 void TestCopyToGPUFromCpuTensor() {
-  auto t1 = InitGPUTensorForTest();
+  auto t1 = InitCPUTensorForTest();
   auto t1_gpu_cp = t1.copy_to_gpu<T>();
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
   std::cout << "im 2" << std::endl;
+  auto rlt = t1_gpu_cp.template copy_to_cpu<T>();
+  std::cout << "im 2.3" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
-    CHECK_EQ(t1_gpu_cp.template data<T>()[i], 5);
+    CHECK_EQ(rlt.template data<T>()[i], 5);
   }
 }
 
