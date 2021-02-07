@@ -23,6 +23,7 @@ paddle::Tensor InitGPUTensorForTest() {
   auto* p_data_ptr = t1.mutable_data<float>(paddle::PlaceType::kGPU);
   std::cout << "im 1" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
+    std::cout << "im 1.1" << std::endl;
     p_data_ptr[i] = 5;
   }
   std::cout << "im 2" << std::endl;
