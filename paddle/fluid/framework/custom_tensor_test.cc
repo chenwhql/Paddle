@@ -48,7 +48,9 @@ void TestCopyTensor() {
 
 void TestAPIPlace() {
   auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
+  t1.mutable_data<float>();
   auto t2 = paddle::Tensor(paddle::PlaceType::kCPU);
+  t2.mutable_data<float>();
   CHECK((paddle::PlaceType::kGPU == t1.place()));
   CHECK((paddle::PlaceType::kCPU == t2.place()));
 }
