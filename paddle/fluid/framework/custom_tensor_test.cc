@@ -21,9 +21,11 @@ paddle::Tensor InitGPUTensorForTest() {
   auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
   t1.reshape(tensor_shape);
   t1.mutable_data<float>(paddle::PlaceType::kGPU);
+  std::cout << "im 1" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
     t1.data<float>()[i] = 5;
   }
+  std::cout << "im 2" << std::endl;
   return t1;
 }
 
@@ -40,11 +42,15 @@ paddle::Tensor InitCPUTensorForTest() {
 template <typename T>
 void TestCopyToCpuFromGpuTensor() {
   auto t1 = InitGPUTensorForTest();
+  std::cout << "im 3" << std::endl;
   auto t1_cpu_cp = t1.copy_to_cpu<T>();
+  std::cout << "im 4" << std::endl;
   CHECK((paddle::PlaceType::kCPU == t1_cpu_cp.place()));
+  std::cout << "t1 sizeL: " << t1_cpu_cp.size() << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
+  std::cout << "im 5" << std::endl;
 }
 
 template <typename T>
@@ -52,6 +58,7 @@ void TestCopyToGPUFromCpuTensor() {
   auto t1 = InitGPUTensorForTest();
   auto t1_gpu_cp = t1.copy_to_gpu<T>();
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
+  std::cout << "im 2" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_gpu_cp.template data<T>()[i], 5);
   }
