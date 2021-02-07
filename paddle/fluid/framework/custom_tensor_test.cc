@@ -21,7 +21,7 @@ paddle::Tensor InitGPUTensorForTest() {
   auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
   t1.mutable_data<float>(paddle::PlaceType::kGPU);
   t1.reshape(tensor_shape);
-  for (size_t i = 0; i < t1.size(); i++) {
+  for (int64_t i = 0; i < t1.size(); i++) {
     t1.data<float>()[i] = 5;
   }
   return t1;
