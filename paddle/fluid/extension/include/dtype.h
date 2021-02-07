@@ -13,17 +13,25 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 #pragma once
+#include "paddle/fluid/platform/bfloat16.h"
+#include "paddle/fluid/platform/complex128.h"
+#include "paddle/fluid/platform/complex64.h"
+#include "paddle/fluid/platform/float16.h"
 
 namespace paddle {
 
 enum PaddleDType {
-        FLOAT32,
-        FLOAT64,
-        INT64,
-        INT32,
-        UINT8,
-        INT8,
-        // TODO(Superjomn) support more data types if needed.
-    };
+  FLOAT32,
+  FLOAT64,
+  BFLOAT16,
+  COMPLEX128,
+  COMPLEX64,
+  FLOAT16,
+  INT64,
+  INT32,
+  UINT8,
+  INT8,
+  // TODO(Superjomn) support more data types if needed.
+};
 
 }  // namespace paddle
