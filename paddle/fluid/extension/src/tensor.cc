@@ -85,6 +85,8 @@ DataType Tensor::type() const {
     return DataType::INT32;
   } else if (type == framework::proto::VarType::INT16) {
     return DataType::INT16;
+  } else if (type == framework::proto::VarType::INT8) {
+    return DataType::INT8;
   } else if (type == framework::proto::VarType::UINT8) {
     return DataType::UINT8;
   } else if (type == framework::proto::VarType::FP64) {

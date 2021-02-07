@@ -60,6 +60,7 @@ void TestAPISizeAndShape() {
   CHECK_EQ(t1.size(), 25);
   CHECK(t1.shape() == tensor_shape);
 }
+
 template <typename T>
 paddle::DataType TestDtype() {
   std::vector<int> tensor_shape = {5, 5};
@@ -74,15 +75,39 @@ void GroupTestCopy() {
   TestCopyTensor<float>();
   VLOG(0) << "Double cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<double>();
+  VLOG(0) << "Fp16 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<paddle::platform::float16>();
+  VLOG(0) << "BF16 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<paddle::platform::bfloat16>();
+  VLOG(0) << "complex128 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<paddle::platform::complex128>();
+  VLOG(0) << "complex64 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<paddle::platform::complex64>();
+  VLOG(0) << "int cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<int>();
+  VLOG(0) << "int64 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<int64_t>();
+  VLOG(0) << "int16 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<int16_t>();
+  VLOG(0) << "int8 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<int8_t>();
+  VLOG(0) << "uint8 cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<u_int8_t>();
 }
 void GroupTestDtype() {
   CHECK(TestDtype<float>() == paddle::DataType::FLOAT32);
   CHECK(TestDtype<double>() == paddle::DataType::FLOAT64);
+  CHECK(TestDtype<paddle::platform::float16>() == paddle::DataType::FLOAT16);
+  CHECK(TestDtype<paddle::platform::bfloat16>() == paddle::DataType::BFLOAT16);
+  CHECK(TestDtype<paddle::platform::complex128>() ==
+        paddle::DataType::COMPLEX128);
+  CHECK(TestDtype<paddle::platform::complex64>() ==
+        paddle::DataType::COMPLEX64);
   CHECK(TestDtype<int>() == paddle::DataType::INT32);
   CHECK(TestDtype<int64_t>() == paddle::DataType::INT64);
-  // TODO(JiabinYang): CHECK(TestDtype<int16_t>() == paddle::DataType::INT16);
-
+  CHECK(TestDtype<int16_t>() == paddle::DataType::INT16);
   CHECK(TestDtype<int8_t>() == paddle::DataType::INT8);
+  CHECK(TestDtype<u_int8_t>() == paddle::DataType::UINT8);
 }
 
 TEST(CustomTensor, copyTest) {
