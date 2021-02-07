@@ -31,7 +31,7 @@ void TestCopyToCpuOfGpuTensor() {
   auto t1 = InitGPUTensorForTest();
   auto t1_cpu_cp = t1.copy_to_cpu<T>();
   CHECK_EQ(paddle::PlaceType::kCPU, t1_cpu_cp.place());
-  for (size_t i = 0; i < t1.size(); i++) {
+  for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
 }
