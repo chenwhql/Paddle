@@ -112,6 +112,7 @@ Tensor Tensor::copy_to_gpu() {
                         "function before copying data from cpu."));
   size_t ele_size = tensor->numel() * sizeof(T);
   Tensor target = Tensor(PlaceType::kGPU);
+  target.reshape(shape());
   auto *p_target_data = target.template mutable_data<T>();
   auto p_src_data = tensor->data<T>();
 
@@ -143,8 +144,8 @@ Tensor Tensor::copy_to_cpu() {
   auto *t_data = tensor->data<T>();
   auto t_place = tensor->place();
   Tensor target = Tensor(PlaceType::kCPU);
+  target.reshape(shape());
   auto *p_target_data = target.template mutable_data<T>();
-
   if (platform::is_cpu_place(t_place)) {
     std::memcpy(static_cast<void *>(p_target_data), t_data,
                 ele_num * sizeof(T));
