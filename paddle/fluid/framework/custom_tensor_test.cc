@@ -20,10 +20,10 @@ paddle::Tensor InitGPUTensorForTest() {
   std::vector<int> tensor_shape = {5, 5};
   auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
   t1.reshape(tensor_shape);
-  t1.mutable_data<float>(paddle::PlaceType::kGPU);
+  auto* p_data_ptr = t1.mutable_data<float>(paddle::PlaceType::kGPU);
   std::cout << "im 1" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
-    t1.data<float>()[i] = 5;
+    p_data_ptr[i] = 5;
   }
   std::cout << "im 2" << std::endl;
   return t1;
@@ -33,9 +33,9 @@ paddle::Tensor InitCPUTensorForTest() {
   std::vector<int> tensor_shape = {5, 5};
   auto t1 = paddle::Tensor(paddle::PlaceType::kCPU);
   t1.reshape(tensor_shape);
-  t1.mutable_data<float>(paddle::PlaceType::kCPU);
+  auto* p_data_ptr = t1.mutable_data<float>(paddle::PlaceType::kCPU);
   for (int64_t i = 0; i < t1.size(); i++) {
-    t1.data<float>()[i] = 5;
+    p_data_ptr[i] = 5;
   }
   return t1;
 }
