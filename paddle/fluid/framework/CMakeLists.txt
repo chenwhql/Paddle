@@ -161,6 +161,7 @@ nv_test(op_registry_test SRCS op_registry_test.cc DEPS op_registry)
 
 
 cc_library(custom_tensor SRCS ../extension/src/tensor.cc DEPS lod_tensor)
+cc_test(custom_tensor_test SRCS custom_tensor_test.cc DEPS custom_tensor)
 cc_library(custom_operator SRCS custom_operator.cc DEPS operator op_registry device_context dynamic_loader custom_tensor)
 
 if(WITH_PYTHON)

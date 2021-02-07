@@ -39,7 +39,7 @@ void relu_cpu_backward_kernel(const data_t* grad_out_data,
 
 std::vector<paddle::Tensor> relu_cpu_forward(const paddle::Tensor& x) {
   auto out = paddle::Tensor(paddle::PlaceType::kCPU);
-  out.Reshape(x.shape());
+  out.reshape(x.shape());
 
   PD_DISPATCH_FLOATING_TYPES(
       x.type(), "relu_cpu_forward", ([&] {
@@ -54,7 +54,7 @@ std::vector<paddle::Tensor> relu_cpu_backward(const paddle::Tensor& grad_out,
                                               const paddle::Tensor& out,
                                               const paddle::Tensor& x) {
   auto grad_x = paddle::Tensor(paddle::PlaceType::kCPU);
-  grad_x.Reshape(x.shape());
+  grad_x.reshape(x.shape());
 
   PD_DISPATCH_FLOATING_TYPES(out.type(), "relu_cpu_backward", ([&] {
                                relu_cpu_backward_kernel<data_t>(
@@ -74,26 +74,26 @@ std::vector<paddle::Tensor> relu_cuda_backward(const paddle::Tensor& grad_out,
 
 std::vector<paddle::Tensor> ReluForward(const paddle::Tensor& x) {
   // TODO(chenweihang): Check Input
-    if (x.place() == paddle::PlaceType::kCPU) {
-        return relu_cpu_forward(x);
-    } else if (x.place() == paddle::PlaceType::kGPU) {
-        return relu_cuda_forward(x);
-    } else {
-        throw std::runtime_error("Not implemented.");
-    }
+  if (x.place() == paddle::PlaceType::kCPU) {
+    return relu_cpu_forward(x);
+  } else if (x.place() == paddle::PlaceType::kGPU) {
+    return relu_cuda_forward(x);
+  } else {
+    throw std::runtime_error("Not implemented.");
+  }
 }
 
 std::vector<paddle::Tensor> ReluBackward(const paddle::Tensor& grad_out,
                                          const paddle::Tensor& out,
                                          const paddle::Tensor& x) {
   // TODO(chenweihang): Check Input
-    if (x.place() == paddle::PlaceType::kCPU) {
-        return relu_cpu_backward(grad_out, out, x);
-    } else if (x.place() == paddle::PlaceType::kGPU) {
-        return relu_cuda_backward(grad_out, out, x);
-    } else {
-        throw std::runtime_error("Not implemented.");
-    }
+  if (x.place() == paddle::PlaceType::kCPU) {
+    return relu_cpu_backward(grad_out, out, x);
+  } else if (x.place() == paddle::PlaceType::kGPU) {
+    return relu_cuda_backward(grad_out, out, x);
+  } else {
+    throw std::runtime_error("Not implemented.");
+  }
 }
 
 std::vector<std::vector<int64_t>> ReluInferShape(std::vector<int64_t> x_shape) {
