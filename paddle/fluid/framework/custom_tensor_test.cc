@@ -16,34 +16,33 @@
 #include "paddle/extension.h"
 #include "paddle/fluid/framework/lod_tensor.h"
 
+template <typename T>
 paddle::Tensor InitCPUTensorForTest() {
   std::vector<int> tensor_shape = {5, 5};
   auto t1 = paddle::Tensor(paddle::PlaceType::kCPU);
   t1.reshape(tensor_shape);
-  auto* p_data_ptr = t1.mutable_data<float>(paddle::PlaceType::kCPU);
+  auto* p_data_ptr = t1.mutable_data<T>(paddle::PlaceType::kCPU);
   for (int64_t i = 0; i < t1.size(); i++) {
     p_data_ptr[i] = 5;
   }
   return t1;
 }
 template <typename T>
-void TestCopyToCpuFromGpuTensor() {
-  auto t1 = InitCPUTensorForTest();
-  auto t1_cpu_cp = t1.copy_to_cpu<T>();
+void TestCopyTensor() {
+  auto t1 = InitCPUTensorForTest<T>();
+  auto t1_cpu_cp = t1.template copy_to_cpu<T>();
   CHECK((paddle::PlaceType::kCPU == t1_cpu_cp.place()));
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
-}
-
-template <typename T>
-void TestCopyToGPUFromCpuTensor() {
-  auto t1 = InitCPUTensorForTest();
-  auto t1_gpu_cp = t1.copy_to_gpu<T>();
+  auto t1_gpu_cp = t1_cpu_cp.template copy_to_gpu<T>();
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
-  auto rlt = t1_gpu_cp.template copy_to_cpu<T>();
+  auto t1_gpu_cp_cp = t1_gpu_cp.template copy_to_gpu<T>();
+  CHECK((paddle::PlaceType::kGPU == t1_gpu_cp_cp.place()));
+  auto t1_gpu_cp_cp_cpu = t1_gpu_cp.template copy_to_cpu<T>();
+  CHECK((paddle::PlaceType::kCPU == t1_gpu_cp_cp_cpu.place()));
   for (int64_t i = 0; i < t1.size(); i++) {
-    CHECK_EQ(rlt.template data<T>()[i], 5);
+    CHECK_EQ(t1_gpu_cp_cp_cpu.template data<T>()[i], 5);
   }
 }
 
@@ -71,10 +70,10 @@ paddle::DataType TestDtype() {
 }
 
 void GroupTestCopy() {
-  TestCopyToCpuFromGpuTensor<float>();
-  TestCopyToCpuFromGpuTensor<double>();
-  TestCopyToGPUFromCpuTensor<float>();
-  TestCopyToGPUFromCpuTensor<double>();
+  VLOG(0) << "Float cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<float>();
+  VLOG(0) << "Double cpu-cpu-gpu-gpu-cpu";
+  TestCopyTensor<double>();
 }
 void GroupTestDtype() {
   CHECK(TestDtype<float>() == paddle::DataType::FLOAT32);
@@ -93,6 +92,6 @@ TEST(CustomTensor, copyTest) {
   GroupTestDtype();
   VLOG(0) << "TestShape";
   TestAPISizeAndShape();
-  VLOG(0) << "Test Place";
+  VLOG(0) << "TestPlace";
   TestAPIPlace();
 }
