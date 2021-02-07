@@ -16,8 +16,8 @@ limitations under the License. */
 
 #include <memory>
 #include <vector>
-#include "paddle/fluid/extension/include/device.h"
 #include "paddle/fluid/extension/include/dtype.h"
+#include "paddle/fluid/extension/include/place.h"
 
 namespace paddle {
 class CustomTensorUtils;
@@ -70,7 +70,7 @@ class Tensor {
   /// \brief Return the data type of the tensor.
   /// It's usually used to get the output tensor data type.
   /// \return The data type of the tensor.
-  PaddleDType type() const;
+  DataType type() const;
 
   /// \brief Get the size of current tensor.
   /// Use this method to get the size of tensor

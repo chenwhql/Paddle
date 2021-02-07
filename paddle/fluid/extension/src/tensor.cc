@@ -12,12 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License. */
 
+#include <utility>
 #include "paddle/fluid/extension/include/all.h"
 #include "paddle/fluid/framework/custom_tensor_utils.h"
 #include "paddle/fluid/framework/lod_tensor.h"
 #include "paddle/fluid/memory/memcpy.h"
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/fluid/platform/gpu_info.h"
+
 namespace paddle {
 
 #define GET_CASTED_TENSOR                               \
@@ -72,29 +74,31 @@ T *Tensor::data() const {
   return res;
 }
 
-PaddleDType Tensor::type() const {
+DataType Tensor::type() const {
   GET_CASTED_TENSOR;
   auto type = tensor->type();
   if (type == framework::proto::VarType::FP32) {
-    return PaddleDType::FLOAT32;
+    return DataType::FLOAT32;
   } else if (type == framework::proto::VarType::INT64) {
-    return PaddleDType::INT64;
+    return DataType::INT64;
   } else if (type == framework::proto::VarType::INT32) {
-    return PaddleDType::INT32;
+    return DataType::INT32;
+  } else if (type == framework::proto::VarType::INT16) {
+    return DataType::INT16;
   } else if (type == framework::proto::VarType::UINT8) {
-    return PaddleDType::UINT8;
+    return DataType::UINT8;
   } else if (type == framework::proto::VarType::FP64) {
-    return PaddleDType::FLOAT64;
+    return DataType::FLOAT64;
   } else if (type == framework::proto::VarType::BF16) {
-    return PaddleDType::BFLOAT16;
+    return DataType::BFLOAT16;
   } else if (type == framework::proto::VarType::FP16) {
-    return PaddleDType::FLOAT16;
+    return DataType::FLOAT16;
   } else if (type == framework::proto::VarType::COMPLEX64) {
-    return PaddleDType::COMPLEX64;
+    return DataType::COMPLEX64;
   } else if (type == framework::proto::VarType::COMPLEX128) {
-    return PaddleDType::COMPLEX128;
+    return DataType::COMPLEX128;
   }
-  return PaddleDType::FLOAT32;
+  return DataType::FLOAT32;
 }
 
 template <typename T>

@@ -18,8 +18,8 @@ limitations under the License. */
 #error C++11 or later compatible compiler is required to use Paddle.
 #endif
 
-#include "paddle/fluid/extension/include/device.h"
 #include "paddle/fluid/extension/include/dispatch.h"
 #include "paddle/fluid/extension/include/dtype.h"
-#include "paddle/fluid/extension/include/op_function.h"
+#include "paddle/fluid/extension/include/op_meta_info.h"
+#include "paddle/fluid/extension/include/place.h"
 #include "paddle/fluid/extension/include/tensor.h"
