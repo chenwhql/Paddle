@@ -29,15 +29,11 @@ paddle::Tensor InitCPUTensorForTest() {
 template <typename T>
 void TestCopyToCpuFromGpuTensor() {
   auto t1 = InitCPUTensorForTest();
-  std::cout << "im 3" << std::endl;
   auto t1_cpu_cp = t1.copy_to_cpu<T>();
-  std::cout << "im 4" << std::endl;
   CHECK((paddle::PlaceType::kCPU == t1_cpu_cp.place()));
-  std::cout << "t1 sizeL: " << t1_cpu_cp.size() << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
-  std::cout << "im 5" << std::endl;
 }
 
 template <typename T>
@@ -45,9 +41,7 @@ void TestCopyToGPUFromCpuTensor() {
   auto t1 = InitCPUTensorForTest();
   auto t1_gpu_cp = t1.copy_to_gpu<T>();
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
-  std::cout << "im 2" << std::endl;
   auto rlt = t1_gpu_cp.template copy_to_cpu<T>();
-  std::cout << "im 2.3" << std::endl;
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(rlt.template data<T>()[i], 5);
   }
@@ -93,8 +87,12 @@ void GroupTestDtype() {
 }
 
 TEST(CustomTensor, copyTest) {
+  VLOG(0) << "TestCopy";
   GroupTestCopy();
+  VLOG(0) << "TestDtype";
   GroupTestDtype();
+  VLOG(0) << "TestShape";
   TestAPISizeAndShape();
+  VLOG(0) << "Test Place";
   TestAPIPlace();
 }
