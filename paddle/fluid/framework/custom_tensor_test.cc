@@ -69,7 +69,7 @@ void TestAPISizeAndShape() {
   auto t1 = paddle::Tensor(paddle::PlaceType::kCPU);
   t1.reshape(tensor_shape);
   CHECK_EQ(t1.size(), 25);
-  CHECK_EQ(t1.shape(), tensor_shape);
+  CHECK(t1.shape() == tensor_shape);
 }
 template <typename T>
 paddle::DataType TestDtype() {
