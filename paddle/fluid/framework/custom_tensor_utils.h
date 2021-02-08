@@ -65,7 +65,7 @@ class CustomTensorUtils {
         PADDLE_THROW(platform::errors::Unimplemented(
             "Unsupported data type code(%d) when casting enum data type into "
             "paddle data type.",
-            dtype));
+            static_cast<int>(dtype)));
     }
   }
 
@@ -99,8 +99,7 @@ class CustomTensorUtils {
       default:
         PADDLE_THROW(platform::errors::Unimplemented(
             "Unsupported data type `%s` when casting paddle data type into "
-            "enum "
-            "data type.",
+            "enum data type.",
             DataTypeToString(dtype)));
     }
   }
