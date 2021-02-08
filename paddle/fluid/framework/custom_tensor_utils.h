@@ -62,7 +62,10 @@ class CustomTensorUtils {
       case paddle::DataType::BOOL:
         return framework::proto::VarType::BOOL;
       default:
-        PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+        PADDLE_THROW(platform::errors::Unimplemented(
+            "Unsupported data type code(%d) when casting enum data type into "
+            "paddle data type.",
+            dtype));
     }
   }
 
@@ -94,7 +97,11 @@ class CustomTensorUtils {
       case framework::proto::VarType::BOOL:
         return paddle::DataType::BOOL;
       default:
-        PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+        PADDLE_THROW(platform::errors::Unimplemented(
+            "Unsupported data type `%s` when casting paddle data type into "
+            "enum "
+            "data type.",
+            DataTypeToString(dtype)));
     }
   }
 
