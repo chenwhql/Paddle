@@ -35,6 +35,8 @@ void TestCopyTensor() {
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
+#ifdef PADDLE_WITH_CUDA
+  VLOG(0) << "Do GPU copy test";
   auto t1_gpu_cp = t1_cpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
   auto t1_gpu_cp_cp = t1_gpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
@@ -45,6 +47,7 @@ void TestCopyTensor() {
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_gpu_cp_cp_cpu.template data<T>()[i], 5);
   }
+#endif
 }
 
 void TestAPIPlace() {
