@@ -333,12 +333,12 @@ Tensor Tensor::cast(const DataType &target_type) {
                                CastDataType<bool>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::INT16:
-      framework::VisitDataType(dst_type,
-                               CastDataType<bool>(*tensor, rlt_tensor_, ctx));
+      framework::VisitDataType(
+          dst_type, CastDataType<int16_t>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::UINT8:
-      framework::VisitDataType(dst_type,
-                               CastDataType<bool>(*tensor, rlt_tensor_, ctx));
+      framework::VisitDataType(
+          dst_type, CastDataType<u_int8_t>(*tensor, rlt_tensor_, ctx));
       break;
     // TODO(JiabinYang): Support Complex later
     default:
