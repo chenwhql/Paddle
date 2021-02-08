@@ -53,13 +53,17 @@ void TestCopyTensor() {
 
 void TestAPIPlace() {
   std::vector<int> tensor_shape = {5, 5};
+#ifdef PADDLE_WITH_CUDA
   auto t1 = paddle::Tensor(paddle::PlaceType::kGPU);
   t1.reshape(tensor_shape);
   t1.mutable_data<float>();
+#endif
   auto t2 = paddle::Tensor(paddle::PlaceType::kCPU);
   t2.reshape(tensor_shape);
   t2.mutable_data<float>();
+#ifdef PADDLE_WITH_CUDA
   CHECK((paddle::PlaceType::kGPU == t1.place()));
+#endif
   CHECK((paddle::PlaceType::kCPU == t2.place()));
 }
 
