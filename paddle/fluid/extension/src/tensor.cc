@@ -361,12 +361,13 @@ void CustomTensorUtils::ShareDataTo(const paddle::Tensor &src, void *dst) {
       *static_cast<framework::LoDTensor *>(src.tensor_.get()));
 }
 
-void CustomTensorUtils::ShareDataFrom(void *src, const paddle::Tensor &dst) {
+void CustomTensorUtils::ShareDataFrom(const void *src,
+                                      const paddle::Tensor &dst) {
   if (!dst.tensor_) {
     dst.tensor_ = std::make_shared<framework::LoDTensor>();
   }
   auto *tensor = static_cast<framework::LoDTensor *>(dst.tensor_.get());
-  tensor->ShareDataWith(*static_cast<framework::LoDTensor *>(src));
+  tensor->ShareDataWith(*static_cast<const framework::LoDTensor *>(src));
 }
 
 }  // namespace framework

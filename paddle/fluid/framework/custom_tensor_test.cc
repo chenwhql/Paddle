@@ -37,7 +37,7 @@ void TestCopyTensor() {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
 #ifdef PADDLE_WITH_CUDA
-  VLOG(0) << "Do GPU copy test";
+  VLOG(2) << "Do GPU copy test";
   auto t1_gpu_cp = t1_cpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
   auto t1_gpu_cp_cp = t1_gpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
@@ -95,49 +95,49 @@ void TestCast(paddle::DataType data_type) {
 }
 
 void GroupTestCopy() {
-  VLOG(0) << "Float cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "Float cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<float>();
-  VLOG(0) << "Double cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "Double cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<double>();
   // TODO(JiabinYang): Support these test later
-  //  VLOG(0) << "Fp16 cpu-cpu-gpu-gpu-cpu";
+  //  VLOG(2) << "Fp16 cpu-cpu-gpu-gpu-cpu";
   //  TestCopyTensor<paddle::platform::float16>();
-  //  VLOG(0) << "BF16 cpu-cpu-gpu-gpu-cpu";
+  //  VLOG(2) << "BF16 cpu-cpu-gpu-gpu-cpu";
   //  TestCopyTensor<paddle::platform::bfloat16>();
-  //  VLOG(0) << "complex128 cpu-cpu-gpu-gpu-cpu";
+  //  VLOG(2) << "complex128 cpu-cpu-gpu-gpu-cpu";
   //  TestCopyTensor<paddle::platform::complex128>();
-  //  VLOG(0) << "complex64 cpu-cpu-gpu-gpu-cpu";
+  //  VLOG(2) << "complex64 cpu-cpu-gpu-gpu-cpu";
   //  TestCopyTensor<paddle::platform::complex64>();
-  //  VLOG(0) << "int cpu-cpu-gpu-gpu-cpu";
+  //  VLOG(2) << "int cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<int>();
-  VLOG(0) << "int64 cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "int64 cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<int64_t>();
-  VLOG(0) << "int16 cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "int16 cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<int16_t>();
-  VLOG(0) << "int8 cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "int8 cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<int8_t>();
-  VLOG(0) << "uint8 cpu-cpu-gpu-gpu-cpu";
+  VLOG(2) << "uint8 cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<u_int8_t>();
 }
 
 void GroupTestCast() {
-  VLOG(0) << "int cast";
+  VLOG(2) << "int cast";
   TestCast<int>(paddle::DataType::FLOAT32);
-  VLOG(0) << "int32 cast";
+  VLOG(2) << "int32 cast";
   TestCast<int32_t>(paddle::DataType::FLOAT32);
-  VLOG(0) << "int64 cast";
+  VLOG(2) << "int64 cast";
   TestCast<int64_t>(paddle::DataType::FLOAT32);
-  VLOG(0) << "double cast";
+  VLOG(2) << "double cast";
   TestCast<double>(paddle::DataType::FLOAT32);
-  VLOG(0) << "bfloat16 cast";
+  VLOG(2) << "bfloat16 cast";
   TestCast<paddle::platform::bfloat16>(paddle::DataType::FLOAT32);
-  VLOG(0) << "float16 cast";
+  VLOG(2) << "float16 cast";
   TestCast<paddle::platform::float16>(paddle::DataType::FLOAT32);
-  VLOG(0) << "bool cast";
+  VLOG(2) << "bool cast";
   TestCast<bool>(paddle::DataType::FLOAT32);
-  VLOG(0) << "uint8 cast";
+  VLOG(2) << "uint8 cast";
   TestCast<u_int8_t>(paddle::DataType::FLOAT32);
-  VLOG(0) << "float cast";
+  VLOG(2) << "float cast";
   TestCast<float>(paddle::DataType::FLOAT32);
 }
 
@@ -158,14 +158,14 @@ void GroupTestDtype() {
 }
 
 TEST(CustomTensor, copyTest) {
-  VLOG(0) << "TestCopy";
+  VLOG(2) << "TestCopy";
   GroupTestCopy();
-  VLOG(0) << "TestDtype";
+  VLOG(2) << "TestDtype";
   GroupTestDtype();
-  VLOG(0) << "TestShape";
+  VLOG(2) << "TestShape";
   TestAPISizeAndShape();
-  VLOG(0) << "TestPlace";
+  VLOG(2) << "TestPlace";
   TestAPIPlace();
-  VLOG(0) << "TestCast";
+  VLOG(2) << "TestCast";
   GroupTestCast();
 }

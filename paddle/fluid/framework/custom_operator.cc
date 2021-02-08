@@ -94,7 +94,7 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
                           "Input tensor (%s) is not initialized."));
     auto custom_in = paddle::Tensor(
         CustomTensorUtils::ConvertInnerPlaceToEnumPlace(x->place()));
-    CustomTensorUtils::ShareDataFrom((void*)x, custom_in);  // NOLINT
+    CustomTensorUtils::ShareDataFrom(static_cast<const void*>(x), custom_in);
     custom_ins.emplace_back(custom_in);
   }
 

@@ -34,7 +34,7 @@ class CustomTensorUtils {
   /// \brief Share data FROM another tensor.
   /// Use this to pass tensor from op to op
   /// \return void.
-  static void ShareDataFrom(void* src, const Tensor& dst);
+  static void ShareDataFrom(const void* src, const Tensor& dst);
 
   static framework::proto::VarType::Type ConvertEnumDTypeToInnerDType(
       const paddle::DataType& dtype) {
@@ -115,7 +115,10 @@ class CustomTensorUtils {
           platform::CUDAPlace(platform::GetCurrentDeviceId()));
 #endif
     } else {
-      PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+      PADDLE_THROW(platform::errors::Unimplemented(
+          "Unsupported place type code(%d) when "
+          "casting enum place to paddle place.",
+          static_cast<int>(pc)));
     }
     return platform::Place();
   }
@@ -128,7 +131,10 @@ class CustomTensorUtils {
       return PlaceType::kGPU;
 #endif
     } else {
-      PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+      PADDLE_THROW(
+          platform::errors::Unimplemented("Unsupported place type `%s` when "
+                                          "casting paddle place to enum place.",
+                                          pc));
     }
     return PlaceType::kUNK;
   }
