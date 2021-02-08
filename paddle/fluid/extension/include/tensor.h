@@ -61,13 +61,7 @@ class Tensor {
   /// It's usually used to set the input tensor data.
   /// \param data The pointer of the data, from which
   /// the tensor will copy.
-  //  template <typename T>
-  //  Tensor copy_to_gpu();
-  //
-  //  /// \brief Copy the tensor data to the host memory.
-  //  /// It's usually used to get the output tensor data.
-  //  /// \param[out] data The tensor will copy the data to
-  //  /// the address.
+
   template <typename T>
   Tensor copy_to(const PlaceType& place);
 

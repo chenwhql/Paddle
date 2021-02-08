@@ -112,7 +112,18 @@ void GroupTestCopy() {
   TestCopyTensor<u_int8_t>();
 }
 
-void GroupTestCast() { TestCast<float>(paddle::DataType::INT32); }
+void GroupTestCast() {
+  TestCast<float>(paddle::DataType::INT32);
+  TestCast<float>(paddle::DataType::FLOAT16);
+  TestCast<float>(paddle::DataType::FLOAT32);
+  TestCast<float>(paddle::DataType::FLOAT64);
+  TestCast<float>(paddle::DataType::INT64);
+  TestCast<float>(paddle::DataType::INT8);
+  TestCast<float>(paddle::DataType::UINT8);
+  TestCast<float>(paddle::DataType::BFLOAT16);
+  TestCast<float>(paddle::DataType::COMPLEX128);
+  TestCast<float>(paddle::DataType::COMPLEX64);
+}
 
 void GroupTestDtype() {
   CHECK(TestDtype<float>() == paddle::DataType::FLOAT32);
