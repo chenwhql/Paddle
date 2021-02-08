@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "glog/logging.h"
 #include "gtest/gtest.h"
 #include "paddle/extension.h"
 #include "paddle/fluid/framework/lod_tensor.h"
@@ -116,14 +117,23 @@ void GroupTestCopy() {
 }
 
 void GroupTestCast() {
+  VLOG(0) << "int cast";
   TestCast<int>(paddle::DataType::FLOAT32);
+  VLOG(0) << "int32 cast";
   TestCast<int32_t>(paddle::DataType::FLOAT32);
+  VLOG(0) << "int64 cast";
   TestCast<int64_t>(paddle::DataType::FLOAT32);
+  VLOG(0) << "double cast";
   TestCast<double>(paddle::DataType::FLOAT32);
+  VLOG(0) << "bfloat16 cast";
   TestCast<paddle::platform::bfloat16>(paddle::DataType::FLOAT32);
+  VLOG(0) << "float16 cast";
   TestCast<paddle::platform::float16>(paddle::DataType::FLOAT32);
+  VLOG(0) << "bool cast";
   TestCast<bool>(paddle::DataType::FLOAT32);
+  VLOG(0) << "uint8 cast";
   TestCast<u_int8_t>(paddle::DataType::FLOAT32);
+  VLOG(0) << "float cast";
   TestCast<float>(paddle::DataType::FLOAT32);
 }
 
