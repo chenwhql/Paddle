@@ -165,6 +165,8 @@ DataType Tensor::type() const {
     return DataType::COMPLEX64;
   } else if (type == framework::proto::VarType::COMPLEX128) {
     return DataType::COMPLEX128;
+  } else if (type == framework::proto::VarType::BOOL) {
+    return DataType::BOOL;
   }
   return DataType::FLOAT32;
 }
@@ -218,6 +220,7 @@ template Tensor Tensor::copy_to<int32_t>(const PlaceType &target_place);
 template Tensor Tensor::copy_to<uint8_t>(const PlaceType &target_place);
 template Tensor Tensor::copy_to<int8_t>(const PlaceType &target_place);
 template Tensor Tensor::copy_to<int16_t>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<bool>(const PlaceType &target_place);
 
 template float *Tensor::data<float>() const;
 template double *Tensor::data<double>() const;
@@ -234,6 +237,7 @@ Tensor::data<paddle::platform::complex128>() const;
 template paddle::platform::complex64 *
 Tensor::data<paddle::platform::complex64>() const;
 template int16_t *Tensor::data<int16_t>() const;
+template bool *Tensor::data<bool>() const;
 
 template float *Tensor::mutable_data<float>();
 template double *Tensor::mutable_data<double>();
@@ -250,6 +254,7 @@ Tensor::mutable_data<paddle::platform::complex128>();
 template paddle::platform::complex64 *
 Tensor::mutable_data<paddle::platform::complex64>();
 template int16_t *Tensor::mutable_data<int16_t>();
+template bool *Tensor::mutable_data<bool>();
 
 template float *Tensor::mutable_data<float>(const PlaceType &place);
 template double *Tensor::mutable_data<double>(const PlaceType &place);
@@ -266,6 +271,7 @@ Tensor::mutable_data<paddle::platform::complex128>(const PlaceType &place);
 template paddle::platform::complex64 *
 Tensor::mutable_data<paddle::platform::complex64>(const PlaceType &place);
 template int16_t *Tensor::mutable_data<int16_t>(const PlaceType &place);
+template bool *Tensor::mutable_data<bool>(const PlaceType &place);
 
 std::vector<int> Tensor::shape() const {
   GET_CASTED_TENSOR
@@ -334,6 +340,7 @@ Tensor Tensor::cast(const DataType &target_type) {
       framework::VisitDataType(dst_type,
                                CastDataType<bool>(*tensor, rlt_tensor_, ctx));
       break;
+    // TODO(JiabinYang): Support Complex later
     default:
       PADDLE_THROW(platform::errors::Unimplemented(
           "Data type (%s) is not supported when casting data type.",

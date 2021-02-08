@@ -59,6 +59,8 @@ class CustomTensorUtils {
         return framework::proto::VarType::INT32;
       case paddle::DataType::INT64:
         return framework::proto::VarType::INT64;
+      case paddle::DataType::BOOL:
+        return framework::proto::VarType::BOOL;
       default:
         PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
     }
@@ -89,6 +91,8 @@ class CustomTensorUtils {
         return paddle::DataType::UINT8;
       case framework::proto::VarType::INT16:
         return paddle::DataType::INT16;
+      case framework::proto::VarType::BOOL:
+        return paddle::DataType::BOOL;
       default:
         PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
     }
