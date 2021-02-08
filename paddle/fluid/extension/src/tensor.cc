@@ -22,6 +22,37 @@ limitations under the License. */
 
 namespace paddle {
 
+template <typename T>
+struct CastDataType;
+
+framework::proto::VarType::Type ConvertEnumDTypeToInnerDType(
+    const paddle::DataType &dtype) {
+  switch (dtype) {
+    case paddle::DataType::COMPLEX128:
+      return framework::proto::VarType::COMPLEX128;
+    case paddle::DataType::COMPLEX64:
+      return framework::proto::VarType::COMPLEX64;
+    case paddle::DataType::FLOAT64:
+      return framework::proto::VarType::FP64;
+    case paddle::DataType::FLOAT32:
+      return framework::proto::VarType::FP32;
+    case paddle::DataType::FLOAT16:
+      return framework::proto::VarType::FP16;
+    case paddle::DataType::BFLOAT16:
+      return framework::proto::VarType::BF16;
+    case paddle::DataType::UINT8:
+      return framework::proto::VarType::UINT8;
+    case paddle::DataType::INT8:
+      return framework::proto::VarType::INT8;
+    case paddle::DataType::INT32:
+      return framework::proto::VarType::INT32;
+    case paddle::DataType::INT64:
+      return framework::proto::VarType::INT64;
+    default:
+      PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+  }
+}
+
 #define GET_CASTED_TENSOR                               \
   if (!tensor_) {                                       \
     tensor_ = std::make_shared<framework::LoDTensor>(); \
@@ -259,6 +290,51 @@ const PlaceType &Tensor::place() const {
         "either Place::kCPU or Place::kGPU");
   }
   return place_;
+}
+
+Tensor Tensor::cast_data_type(const DataType &target_type) {
+  GET_CASTED_TENSOR;
+  Tensor rlt = Tensor(place());
+  rlt.reshape(this->shape());
+  platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
+  auto ctx = pool.Get(tensor->place());
+  auto src_type = tensor->type();
+  auto dst_type = ConvertEnumDTypeToInnerDType(target_type);
+  switch (src_type) {
+    case framework::proto::VarType::FP16:
+      framework::VisitDataType(dst_type,
+                               CastDataType<platform::float16>(in, out, ctx));
+      break;
+    case framework::proto::VarType::BF16:
+      framework::VisitDataType(dst_type,
+                               CastDataType<platform::bfloat16>(in, out, ctx));
+      break;
+    case framework::proto::VarType::FP32:
+      framework::VisitDataType(dst_type, CastDataType<float>(in, out, ctx));
+      break;
+    case framework::proto::VarType::FP64:
+      framework::VisitDataType(dst_type, CastDataType<double>(in, out, ctx));
+      break;
+    case framework::proto::VarType::INT32:
+      framework::VisitDataType(dst_type, CastDataType<int>(in, out, ctx));
+      break;
+    case framework::proto::VarType::INT64:
+      framework::VisitDataType(dst_type, CastDataType<int64_t>(in, out, ctx));
+      break;
+    case framework::proto::VarType::BOOL:
+      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      break;
+    case framework::proto::VarType::INT16:
+      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      break;
+    case framework::proto::VarType::UINT8:
+      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      break;
+    default:
+      PADDLE_THROW(platform::errors::Unimplemented(
+          "Data type (%s) is not supported when casting data type.",
+          DataTypeToString(src_type)));
+  }
 }
 
 void CustomTensorUtils::ShareDataTo(const Tensor &src, void *dst) {

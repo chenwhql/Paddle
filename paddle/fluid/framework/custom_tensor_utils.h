@@ -17,7 +17,7 @@ limitations under the License. */
 #include <memory>
 
 #include "paddle/fluid/extension/include/tensor.h"
-
+#include "paddle/fluid/framework/data_type.h"
 namespace paddle {
 
 class CustomTensorUtils {
@@ -31,6 +31,64 @@ class CustomTensorUtils {
   /// Use this to pass tensor from op to op
   /// \return void.
   static void ShareDataFrom(void* src, const Tensor& dst);
+
+  static framework::proto::VarType::Type ConvertEnumDTypeToInnerDType(
+      const paddle::DataType& dtype) {
+    switch (dtype) {
+      case paddle::DataType::COMPLEX128:
+        return framework::proto::VarType::COMPLEX128;
+      case paddle::DataType::COMPLEX64:
+        return framework::proto::VarType::COMPLEX64;
+      case paddle::DataType::FLOAT64:
+        return framework::proto::VarType::FP64;
+      case paddle::DataType::FLOAT32:
+        return framework::proto::VarType::FP32;
+      case paddle::DataType::FLOAT16:
+        return framework::proto::VarType::FP16;
+      case paddle::DataType::BFLOAT16:
+        return framework::proto::VarType::BF16;
+      case paddle::DataType::UINT8:
+        return framework::proto::VarType::UINT8;
+      case paddle::DataType::INT8:
+        return framework::proto::VarType::INT8;
+      case paddle::DataType::INT32:
+        return framework::proto::VarType::INT32;
+      case paddle::DataType::INT64:
+        return framework::proto::VarType::INT64;
+      default:
+        PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+    }
+  }
+
+  static paddle::DataType ConvertInnerDTypeToEnumDType(
+      const framework::proto::VarType::Type& dtype) {
+    switch (dtype) {
+      case framework::proto::VarType::COMPLEX128:
+        return paddle::DataType::COMPLEX128;
+      case framework::proto::VarType::COMPLEX64:
+        return paddle::DataType::COMPLEX64;
+      case framework::proto::VarType::FP64:
+        return paddle::DataType::FLOAT64;
+      case framework::proto::VarType::FP32:
+        return paddle::DataType::FLOAT32;
+      case framework::proto::VarType::FP16:
+        return paddle::DataType::FLOAT16;
+      case framework::proto::VarType::BF16:
+        return paddle::DataType::BFLOAT16;
+      case framework::proto::VarType::INT64:
+        return paddle::DataType::INT64;
+      case framework::proto::VarType::INT32:
+        return paddle::DataType::INT32;
+      case framework::proto::VarType::INT8:
+        return paddle::DataType::INT8;
+      case framework::proto::VarType::UINT8:
+        return paddle::DataType::UINT8;
+      case framework::proto::VarType::INT16:
+        return paddle::DataType::INT16;
+      default:
+        PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+    }
+  }
 };
 
 }  // namespace paddle

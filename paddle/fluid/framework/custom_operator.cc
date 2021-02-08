@@ -103,64 +103,6 @@ PlaceType ConvertInnerPlaceToEnumPlace(const platform::Place& pc) {
   return PlaceType::kUNK;
 }
 
-proto::VarType::Type ConvertEnumDTypeToInnerDType(
-    const paddle::DataType& dtype) {
-  switch (dtype) {
-    case paddle::DataType::COMPLEX128:
-      return proto::VarType::COMPLEX128;
-    case paddle::DataType::COMPLEX64:
-      return proto::VarType::COMPLEX64;
-    case paddle::DataType::FLOAT64:
-      return proto::VarType::FP64;
-    case paddle::DataType::FLOAT32:
-      return proto::VarType::FP32;
-    case paddle::DataType::FLOAT16:
-      return proto::VarType::FP16;
-    case paddle::DataType::BFLOAT16:
-      return proto::VarType::BF16;
-    case paddle::DataType::UINT8:
-      return proto::VarType::UINT8;
-    case paddle::DataType::INT8:
-      return proto::VarType::INT8;
-    case paddle::DataType::INT32:
-      return proto::VarType::INT32;
-    case paddle::DataType::INT64:
-      return proto::VarType::INT64;
-    default:
-      PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
-  }
-}
-
-paddle::DataType ConvertInnerDTypeToEnumDType(
-    const proto::VarType::Type& dtype) {
-  switch (dtype) {
-    case proto::VarType::COMPLEX128:
-      return paddle::DataType::COMPLEX128;
-    case proto::VarType::COMPLEX64:
-      return paddle::DataType::COMPLEX64;
-    case proto::VarType::FP64:
-      return paddle::DataType::FLOAT64;
-    case proto::VarType::FP32:
-      return paddle::DataType::FLOAT32;
-    case proto::VarType::FP16:
-      return paddle::DataType::FLOAT16;
-    case proto::VarType::BF16:
-      return paddle::DataType::BFLOAT16;
-    case proto::VarType::INT64:
-      return paddle::DataType::INT64;
-    case proto::VarType::INT32:
-      return paddle::DataType::INT32;
-    case proto::VarType::INT8:
-      return paddle::DataType::INT8;
-    case proto::VarType::UINT8:
-      return paddle::DataType::UINT8;
-    case proto::VarType::INT16:
-      return paddle::DataType::INT16;
-    default:
-      PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
-  }
-}
-
 ////////////////// Kernel Define ////////////////////
 
 // custom op kernel call function define
@@ -480,7 +422,8 @@ void RegisterOperatorWithMetaInfo(
     VLOG(1) << "Custom Operator: InferDtype - get input dtype.";
     for (auto& in_name : op_inputs) {
       auto dtype = ctx->GetInputDataType(in_name);
-      input_dtypes.emplace_back(ConvertInnerDTypeToEnumDType(dtype));
+      input_dtypes.emplace_back(
+          CustomTensorUtils::ConvertInnerDTypeToEnumDType(dtype));
     }
 
     VLOG(1) << "Custom Operator: InferDtype - infer output dtype.";
@@ -488,8 +431,9 @@ void RegisterOperatorWithMetaInfo(
 
     VLOG(1) << "Custom Operator: InferDtype - set output dtype.";
     for (size_t i = 0; i < op_outputs.size(); ++i) {
-      ctx->SetOutputDataType(op_outputs[i],
-                             ConvertEnumDTypeToInnerDType(output_dtypes[i]));
+      ctx->SetOutputDataType(
+          op_outputs[i],
+          CustomTensorUtils::ConvertEnumDTypeToInnerDType(output_dtypes[i]));
     }
   };
 

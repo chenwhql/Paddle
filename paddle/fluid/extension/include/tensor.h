@@ -87,6 +87,13 @@ class Tensor {
   /// \return Place.
   const PlaceType& place() const;
 
+  /// \brief Cast datatype from one to another
+  Tensor cast_data_type(const DataType& target_type);
+
+ private:
+  template <typename T>
+  static T ConverDatatypeToProtoVarType(DataType type);
+
  private:
   friend class CustomTensorUtils;
   mutable std::shared_ptr<void> tensor_;
