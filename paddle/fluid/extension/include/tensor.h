@@ -59,7 +59,7 @@ class Tensor {
 
   /// \brief Copy the host memory to tensor data.
   /// It's usually used to set the input tensor data.
-  /// \param data The pointer of the data, from which
+  /// \param PlaceType of target place, from which
   /// the tensor will copy.
 
   template <typename T>
