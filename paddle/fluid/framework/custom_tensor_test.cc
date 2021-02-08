@@ -116,14 +116,13 @@ void GroupTestCopy() {
 }
 
 void GroupTestCast() {
-  TestCast<int8_t>(paddle::DataType::FLOAT32);
-  TestCast<int>(paddle::DataType::FLOAT16);
+  TestCast<int>(paddle::DataType::FLOAT32);
   TestCast<int32_t>(paddle::DataType::FLOAT32);
   TestCast<int64_t>(paddle::DataType::FLOAT32);
   TestCast<double>(paddle::DataType::FLOAT32);
   TestCast<paddle::platform::bfloat16>(paddle::DataType::FLOAT32);
-  TestCast<paddle::platform::complex128>(paddle::DataType::FLOAT32);
-  TestCast<paddle::platform::complex64>(paddle::DataType::FLOAT32);
+  TestCast<paddle::platform::float16>(paddle::DataType::FLOAT32);
+  TestCast<bool>(paddle::DataType::FLOAT32);
   TestCast<u_int8_t>(paddle::DataType::FLOAT32);
   TestCast<float>(paddle::DataType::FLOAT32);
 }
