@@ -30,16 +30,17 @@ paddle::Tensor InitCPUTensorForTest() {
 template <typename T>
 void TestCopyTensor() {
   auto t1 = InitCPUTensorForTest<T>();
-  auto t1_cpu_cp = t1.template copy_to_cpu<T>();
+  auto t1_cpu_cp = t1.template copy_to<T>(paddle::PlaceType::kCPU);
   CHECK((paddle::PlaceType::kCPU == t1_cpu_cp.place()));
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_cpu_cp.template data<T>()[i], 5);
   }
-  auto t1_gpu_cp = t1_cpu_cp.template copy_to_gpu<T>();
+  auto t1_gpu_cp = t1_cpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp.place()));
-  auto t1_gpu_cp_cp = t1_gpu_cp.template copy_to_gpu<T>();
+  auto t1_gpu_cp_cp = t1_gpu_cp.template copy_to<T>(paddle::PlaceType::kGPU);
   CHECK((paddle::PlaceType::kGPU == t1_gpu_cp_cp.place()));
-  auto t1_gpu_cp_cp_cpu = t1_gpu_cp.template copy_to_cpu<T>();
+  auto t1_gpu_cp_cp_cpu =
+      t1_gpu_cp.template copy_to<T>(paddle::PlaceType::kCPU);
   CHECK((paddle::PlaceType::kCPU == t1_gpu_cp_cp_cpu.place()));
   for (int64_t i = 0; i < t1.size(); i++) {
     CHECK_EQ(t1_gpu_cp_cp_cpu.template data<T>()[i], 5);
@@ -75,6 +76,16 @@ paddle::DataType TestDtype() {
   return t1.type();
 }
 
+template <typename T>
+void TestCast(paddle::DataType data_type) {
+  std::vector<int> tensor_shape = {5, 5};
+  auto t1 = paddle::Tensor(paddle::PlaceType::kCPU);
+  t1.reshape(tensor_shape);
+  t1.template mutable_data<T>();
+  auto t2 = t1.cast(data_type);
+  CHECK_EQ(t2.type(), data_type);
+}
+
 void GroupTestCopy() {
   VLOG(0) << "Float cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<float>();
@@ -100,6 +111,9 @@ void GroupTestCopy() {
   VLOG(0) << "uint8 cpu-cpu-gpu-gpu-cpu";
   TestCopyTensor<u_int8_t>();
 }
+
+void GroupTestCast() { TestCast<float>(paddle::DataType::INT32); }
+
 void GroupTestDtype() {
   CHECK(TestDtype<float>() == paddle::DataType::FLOAT32);
   CHECK(TestDtype<double>() == paddle::DataType::FLOAT64);
@@ -125,4 +139,6 @@ TEST(CustomTensor, copyTest) {
   TestAPISizeAndShape();
   VLOG(0) << "TestPlace";
   TestAPIPlace();
+  VLOG(0) << "TestCast";
+  GroupTestCast();
 }

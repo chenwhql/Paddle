@@ -18,6 +18,8 @@ limitations under the License. */
 
 #include "paddle/fluid/extension/include/tensor.h"
 #include "paddle/fluid/framework/data_type.h"
+#include "paddle/fluid/platform/place.h"
+
 namespace paddle {
 namespace framework {
 
@@ -89,6 +91,34 @@ class CustomTensorUtils {
       default:
         PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
     }
+  }
+
+  // PaddlePlace <-> platform::Place
+  static platform::Place ConvertEnumPlaceToInnerPlace(const PlaceType& pc) {
+    if (pc == PlaceType::kCPU) {
+      return platform::Place(platform::CPUPlace());
+    } else if (pc == PlaceType::kGPU) {
+#ifdef PADDLE_WITH_CUDA
+      return platform::Place(
+          platform::CUDAPlace(platform::GetCurrentDeviceId()));
+#endif
+    } else {
+      PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+    }
+    return platform::Place();
+  }
+
+  static PlaceType ConvertInnerPlaceToEnumPlace(const platform::Place& pc) {
+    if (platform::is_cpu_place(pc)) {
+      return PlaceType::kCPU;
+    } else if (platform::is_gpu_place(pc)) {
+#ifdef PADDLE_WITH_CUDA
+      return PlaceType::kGPU;
+#endif
+    } else {
+      PADDLE_THROW("Place for CustomOp is undefined in Paddle");
+    }
+    return PlaceType::kUNK;
   }
 };
 

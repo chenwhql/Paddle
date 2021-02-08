@@ -76,33 +76,6 @@ inline bool IsMemberOf(const std::vector<std::string>& vec,
 
 }  // namespace detail
 
-// PaddlePlace <-> platform::Place
-platform::Place ConvertEnumPlaceToInnerPlace(const PlaceType& pc) {
-  if (pc == PlaceType::kCPU) {
-    return platform::Place(platform::CPUPlace());
-  } else if (pc == PlaceType::kGPU) {
-#ifdef PADDLE_WITH_CUDA
-    return platform::Place(platform::CUDAPlace(platform::GetCurrentDeviceId()));
-#endif
-  } else {
-    PADDLE_THROW("Place for CustomOp is undefined in Paddle");
-  }
-  return platform::Place();
-}
-
-PlaceType ConvertInnerPlaceToEnumPlace(const platform::Place& pc) {
-  if (platform::is_cpu_place(pc)) {
-    return PlaceType::kCPU;
-  } else if (platform::is_gpu_place(pc)) {
-#ifdef PADDLE_WITH_CUDA
-    return PlaceType::kGPU;
-#endif
-  } else {
-    PADDLE_THROW("Place for CustomOp is undefined in Paddle");
-  }
-  return PlaceType::kUNK;
-}
-
 ////////////////// Kernel Define ////////////////////
 
 // custom op kernel call function define
@@ -120,7 +93,8 @@ static void RunKernelFunc(const framework::ExecutionContext& ctx,
     PADDLE_ENFORCE_EQ(x->IsInitialized(), true,
                       platform::errors::InvalidArgument(
                           "Input tensor (%s) is not initialized."));
-    auto custom_in = paddle::Tensor(ConvertInnerPlaceToEnumPlace(x->place()));
+    auto custom_in = paddle::Tensor(
+        CustomTensorUtils::ConvertInnerPlaceToEnumPlace(x->place()));
     CustomTensorUtils::ShareDataFrom((void*)x, custom_in);  // NOLINT
     custom_ins.emplace_back(custom_in);
   }
@@ -326,7 +300,8 @@ void RegisterOperatorKernelWithPlace(const std::string& name,
                                      const PlaceType& place,
                                      const std::vector<std::string>& inputs,
                                      const std::vector<std::string>& outputs) {
-  OpKernelType key(type, ConvertEnumPlaceToInnerPlace(place));
+  OpKernelType key(type,
+                   CustomTensorUtils::ConvertEnumPlaceToInnerPlace(place));
   VLOG(1) << "Custom Operator: op kernel key: " << key;
   OperatorWithKernel::AllOpKernels()[name][key] =
       [kernel_func, inputs, outputs](const framework::ExecutionContext& ctx) {

@@ -19,38 +19,74 @@ limitations under the License. */
 #include "paddle/fluid/memory/memcpy.h"
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/fluid/platform/gpu_info.h"
+#include "paddle/fluid/platform/transform.h"
 
 namespace paddle {
 
-template <typename T>
-struct CastDataType;
-
-framework::proto::VarType::Type ConvertEnumDTypeToInnerDType(
-    const paddle::DataType &dtype) {
-  switch (dtype) {
-    case paddle::DataType::COMPLEX128:
-      return framework::proto::VarType::COMPLEX128;
-    case paddle::DataType::COMPLEX64:
-      return framework::proto::VarType::COMPLEX64;
-    case paddle::DataType::FLOAT64:
-      return framework::proto::VarType::FP64;
-    case paddle::DataType::FLOAT32:
-      return framework::proto::VarType::FP32;
-    case paddle::DataType::FLOAT16:
-      return framework::proto::VarType::FP16;
-    case paddle::DataType::BFLOAT16:
-      return framework::proto::VarType::BF16;
-    case paddle::DataType::UINT8:
-      return framework::proto::VarType::UINT8;
-    case paddle::DataType::INT8:
-      return framework::proto::VarType::INT8;
-    case paddle::DataType::INT32:
-      return framework::proto::VarType::INT32;
-    case paddle::DataType::INT64:
-      return framework::proto::VarType::INT64;
-    default:
-      PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
+template <typename InType, typename OutType>
+struct CastDataTypeFunctor {
+  HOSTDEVICE inline OutType operator()(InType in) const {
+    return static_cast<OutType>(in);
   }
+};
+
+template <typename InType>
+struct CastDataType {
+  CastDataType(const framework::Tensor &in, framework::Tensor *out,
+               const platform::DeviceContext *ctx)
+      : in_(in), out_(out), ctx_(ctx) {}
+  const framework::Tensor in_;
+  framework::Tensor *out_;
+  const platform::DeviceContext *ctx_;
+
+  template <typename OutType>
+  void apply() {
+    auto *in_begin = in_.data<InType>();
+    auto *in_end = in_begin + in_.numel();
+    auto *out_begin = out_->mutable_data<OutType>(in_.place());
+
+    if (platform::is_cpu_place(in_.place())) {
+      platform::Transform<platform::CPUDeviceContext> trans;
+      auto *context = static_cast<const platform::CPUDeviceContext *>(ctx_);
+      trans(*context, in_begin, in_end, out_begin,
+            CastDataTypeFunctor<InType, OutType>());
+#ifdef __NVCC__
+    } else if (platform::is_gpu_place(in_.place())) {
+      platform::Transform<platform::CUDADeviceContext> trans;
+      auto *context = static_cast<const platform::CUDADeviceContext *>(ctx_);
+      trans(*context, in_begin, in_end, out_begin,
+            CastDataTypeFunctor<InType, OutType>());
+      context->Wait();
+#endif
+    } else {
+      PADDLE_THROW(platform::errors::Unimplemented(
+          "Place type is not supported when casting data type."));
+    }
+  }
+};
+template <typename T>
+void GpuCopy(T *src, T *dst, PlaceType src_plc, PlaceType dst_plc,
+             int64_t ele_size) {
+#ifdef PADDLE_WITH_CUDA
+  platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
+  int device_num = paddle::platform::GetCurrentDeviceId();
+  platform::CUDAPlace gpu_place(device_num);
+  auto *dev_ctx =
+      static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
+  if ((src_plc == PlaceType::kGPU) && (dst_plc == PlaceType::kCPU)) {
+    memory::Copy(platform::CPUPlace(), static_cast<void *>(dst), gpu_place, src,
+                 ele_size, dev_ctx->stream());
+  } else if ((src_plc == PlaceType::kGPU) && (dst_plc == PlaceType::kGPU)) {
+    memory::Copy(gpu_place, static_cast<void *>(dst), gpu_place, src, ele_size,
+                 dev_ctx->stream());
+  } else if ((src_plc == PlaceType::kCPU) && (dst_plc == PlaceType::kGPU)) {
+    memory::Copy(gpu_place, static_cast<void *>(dst), platform::CPUPlace(), src,
+                 ele_size, dev_ctx->stream());
+  } else {
+    PADDLE_THROW("Only GPU related Copy can reach this func.");
+  }
+  cudaStreamSynchronize(dev_ctx->stream());
+#endif
 }
 
 #define GET_CASTED_TENSOR                               \
@@ -135,8 +171,7 @@ DataType Tensor::type() const {
 }
 
 template <typename T>
-Tensor Tensor::copy_to_gpu() {
-#ifdef PADDLE_WITH_CUDA
+Tensor Tensor::copy_to(const PlaceType &target_place) {
   GET_CASTED_TENSOR;
   PADDLE_ENFORCE_GE(tensor->numel(), 0,
                     platform::errors::PreconditionNotMet(
@@ -144,85 +179,46 @@ Tensor Tensor::copy_to_gpu() {
                         "std::vector<int> &shape)"
                         "function before copying data from cpu."));
   size_t ele_size = tensor->numel() * sizeof(T);
-  Tensor target = Tensor(PlaceType::kGPU);
+  auto *p_src_data = tensor->data<T>();
+  auto src_place = place();
+  Tensor target = Tensor(target_place);
   target.reshape(shape());
   auto *p_target_data = target.template mutable_data<T>();
-  auto p_src_data = tensor->data<T>();
 
-  platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
-  int device_num = platform::GetCurrentDeviceId();
-  platform::CUDAPlace gpu_place(device_num);
-  auto *dev_ctx =
-      static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
-  if (platform::is_cpu_place(tensor->place())) {
-    memory::Copy(gpu_place, static_cast<void *>(p_target_data),
-                 platform::CPUPlace(), p_src_data, ele_size, dev_ctx->stream());
+  if ((src_place == PlaceType::kCPU) && (target_place == PlaceType::kCPU)) {
+    std::memcpy(static_cast<void *>(p_target_data), p_src_data, ele_size);
+  } else if ((src_place == PlaceType::kGPU) &&
+             (target_place == PlaceType::kCPU)) {
+    GpuCopy<T>(p_src_data, p_target_data, src_place, target_place, ele_size);
+  } else if ((src_place == PlaceType::kCPU) &&
+             (target_place == PlaceType::kGPU)) {
+    GpuCopy<T>(p_src_data, p_target_data, src_place, target_place, ele_size);
+  } else if ((src_place == PlaceType::kGPU) &&
+             (target_place == PlaceType::kGPU)) {
+    GpuCopy<T>(p_src_data, p_target_data, src_place, target_place, ele_size);
   } else {
-    memory::Copy(gpu_place, static_cast<void *>(p_target_data), gpu_place,
-                 p_src_data, ele_size, dev_ctx->stream());
-  }
-  cudaStreamSynchronize(dev_ctx->stream());
-  return target;
-#else
-  PADDLE_THROW(
-      platform::errors::Unavailable("PaddlePaddle is not compiled with CUDA"));
-#endif
-  return Tensor(PlaceType::kGPU);
-}
-
-template <typename T>
-Tensor Tensor::copy_to_cpu() {
-  GET_CASTED_TENSOR;
-  auto ele_num = tensor->numel();
-  auto *t_data = tensor->data<T>();
-  auto t_place = tensor->place();
-  Tensor target = Tensor(PlaceType::kCPU);
-  target.reshape(shape());
-  auto *p_target_data = target.template mutable_data<T>();
-  if (platform::is_cpu_place(t_place)) {
-    std::memcpy(static_cast<void *>(p_target_data), t_data,
-                ele_num * sizeof(T));
-  } else {
-#ifdef PADDLE_WITH_CUDA
-    platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
-    auto gpu_place = BOOST_GET_CONST(platform::CUDAPlace, t_place);
-    auto *dev_ctx =
-        static_cast<const platform::CUDADeviceContext *>(pool.Get(gpu_place));
-    memory::Copy(platform::CPUPlace(), static_cast<void *>(p_target_data),
-                 gpu_place, t_data, ele_num * sizeof(T), dev_ctx->stream());
-
-    cudaStreamSynchronize(dev_ctx->stream());
-#else
     PADDLE_THROW(platform::errors::Unavailable(
-        "PaddlePaddle is not compiled with CUDA."));
-#endif
+        "Not supported place transform of place: %d to place: %d",
+        static_cast<int>(src_place), static_cast<int>(target_place)));
   }
   return target;
 }
 
-template Tensor Tensor::copy_to_gpu<paddle::platform::float16>();
-template Tensor Tensor::copy_to_gpu<paddle::platform::bfloat16>();
-template Tensor Tensor::copy_to_gpu<paddle::platform::complex64>();
-template Tensor Tensor::copy_to_gpu<paddle::platform::complex128>();
-template Tensor Tensor::copy_to_gpu<float>();
-template Tensor Tensor::copy_to_gpu<double>();
-template Tensor Tensor::copy_to_gpu<int64_t>();
-template Tensor Tensor::copy_to_gpu<int32_t>();
-template Tensor Tensor::copy_to_gpu<uint8_t>();
-template Tensor Tensor::copy_to_gpu<int8_t>();
-template Tensor Tensor::copy_to_gpu<int16_t>();
-
-template Tensor Tensor::copy_to_cpu<paddle::platform::float16>();
-template Tensor Tensor::copy_to_cpu<paddle::platform::bfloat16>();
-template Tensor Tensor::copy_to_cpu<paddle::platform::complex64>();
-template Tensor Tensor::copy_to_cpu<paddle::platform::complex128>();
-template Tensor Tensor::copy_to_cpu<float>();
-template Tensor Tensor::copy_to_cpu<double>();
-template Tensor Tensor::copy_to_cpu<int64_t>();
-template Tensor Tensor::copy_to_cpu<int32_t>();
-template Tensor Tensor::copy_to_cpu<uint8_t>();
-template Tensor Tensor::copy_to_cpu<int8_t>();
-template Tensor Tensor::copy_to_cpu<int16_t>();
+template Tensor Tensor::copy_to<paddle::platform::float16>(
+    const PlaceType &target_place);
+template Tensor Tensor::copy_to<paddle::platform::bfloat16>(
+    const PlaceType &target_place);
+template Tensor Tensor::copy_to<paddle::platform::complex64>(
+    const PlaceType &target_place);
+template Tensor Tensor::copy_to<paddle::platform::complex128>(
+    const PlaceType &target_place);
+template Tensor Tensor::copy_to<float>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<double>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<int64_t>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<int32_t>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<uint8_t>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<int8_t>(const PlaceType &target_place);
+template Tensor Tensor::copy_to<int16_t>(const PlaceType &target_place);
 
 template float *Tensor::data<float>() const;
 template double *Tensor::data<double>() const;
@@ -292,49 +288,59 @@ const PlaceType &Tensor::place() const {
   return place_;
 }
 
-Tensor Tensor::cast_data_type(const DataType &target_type) {
+Tensor Tensor::cast(const DataType &target_type) {
   GET_CASTED_TENSOR;
   Tensor rlt = Tensor(place());
   rlt.reshape(this->shape());
+  auto rlt_tensor_ = static_cast<framework::LoDTensor *>(rlt.tensor_.get());
   platform::DeviceContextPool &pool = platform::DeviceContextPool::Instance();
   auto ctx = pool.Get(tensor->place());
   auto src_type = tensor->type();
-  auto dst_type = ConvertEnumDTypeToInnerDType(target_type);
+  auto dst_type =
+      framework::CustomTensorUtils::ConvertEnumDTypeToInnerDType(target_type);
   switch (src_type) {
     case framework::proto::VarType::FP16:
-      framework::VisitDataType(dst_type,
-                               CastDataType<platform::float16>(in, out, ctx));
+      framework::VisitDataType(
+          dst_type, CastDataType<platform::float16>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::BF16:
-      framework::VisitDataType(dst_type,
-                               CastDataType<platform::bfloat16>(in, out, ctx));
+      framework::VisitDataType(dst_type, CastDataType<platform::bfloat16>(
+                                             *tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::FP32:
-      framework::VisitDataType(dst_type, CastDataType<float>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<float>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::FP64:
-      framework::VisitDataType(dst_type, CastDataType<double>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<double>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::INT32:
-      framework::VisitDataType(dst_type, CastDataType<int>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<int>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::INT64:
-      framework::VisitDataType(dst_type, CastDataType<int64_t>(in, out, ctx));
+      framework::VisitDataType(
+          dst_type, CastDataType<int64_t>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::BOOL:
-      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<bool>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::INT16:
-      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<bool>(*tensor, rlt_tensor_, ctx));
       break;
     case framework::proto::VarType::UINT8:
-      framework::VisitDataType(dst_type, CastDataType<bool>(in, out, ctx));
+      framework::VisitDataType(dst_type,
+                               CastDataType<bool>(*tensor, rlt_tensor_, ctx));
       break;
     default:
       PADDLE_THROW(platform::errors::Unimplemented(
           "Data type (%s) is not supported when casting data type.",
-          DataTypeToString(src_type)));
+          framework::DataTypeToString(src_type)));
   }
+  return rlt;
 }
 
 int64_t Tensor::size() const {
