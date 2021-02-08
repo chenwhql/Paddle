@@ -30,6 +30,9 @@ limitations under the License. */
  */
 
 namespace paddle {
+namespace framework {
+class OpMetaInfoHelper;
+}  // namespace framework
 
 using Tensor = paddle::Tensor;
 
@@ -219,7 +222,7 @@ struct InferDtypeFuncImpl<Return (*)(Args...), impl_fn> {
 
 class OpMetaInfo {
  public:
-  explicit OpMetaInfo(const std::string& op_name) { name_ = op_name; }
+  explicit OpMetaInfo(const std::string& op_name) : name_(op_name) {}
   OpMetaInfo& Inputs(std::vector<std::string>&& inputs);
   OpMetaInfo& Outputs(std::vector<std::string>&& outputs);
   OpMetaInfo& SetKernelFn(KernelFunc&& func);
@@ -227,7 +230,7 @@ class OpMetaInfo {
   OpMetaInfo& SetInferDtypeFn(InferDtypeFunc&& func);
 
  private:
-  friend class OpMetaInfoHelper;
+  friend class framework::OpMetaInfoHelper;
 
   // 1. desc info
   std::string name_;
@@ -284,10 +287,29 @@ class OpMetaInfoBuilder {
   OpMetaInfo* info_ptr_;
 };
 
-/////////////////////// Op register marco /////////////////////////
+/////////////////////// Op register API /////////////////////////
+
+// For inference: compile directly with framework
+// Call after PD_BUILD_OPERATOR(...)
+void RegisterAllCustomOperator();
+
+/////////////////////// Op register Macro /////////////////////////
 
 #define PD_BUILD_OPERATOR(op_name)                                      \
   static ::paddle::OpMetaInfoBuilder __op_meta_info_##__COUNTER__##__ = \
       ::paddle::OpMetaInfoBuilder(op_name)
 
 }  // namespace paddle
+
+///////////////////// C API ///////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// C-API to get global OpMetaInfoMap.
+paddle::OpMetaInfoMap& PD_GetOpMetaInfoMap();
+
+#ifdef __cplusplus
+}
+#endif

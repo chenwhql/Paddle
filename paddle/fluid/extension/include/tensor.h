@@ -20,7 +20,9 @@ limitations under the License. */
 #include "paddle/fluid/extension/include/place.h"
 
 namespace paddle {
+namespace framework {
 class CustomTensorUtils;
+}  // namespace framework
 class Tensor {
  public:
   /// \brief Construct a Tensor on None Place for CustomOp.
@@ -90,12 +92,13 @@ class Tensor {
   /// \brief Cast datatype from one to another
   Tensor cast_data_type(const DataType& target_type);
 
- private:
-  template <typename T>
-  static T ConverDatatypeToProtoVarType(DataType type);
+  privatepaddle / fluid / extension / src /
+      tensor.cc : template <typename T>
+                  static T
+                  ConverDatatypeToProtoVarType(DataType type);
 
  private:
-  friend class CustomTensorUtils;
+  friend class framework::CustomTensorUtils;
   mutable std::shared_ptr<void> tensor_;
   mutable PlaceType place_;
 };

@@ -337,12 +337,19 @@ Tensor Tensor::cast_data_type(const DataType &target_type) {
   }
 }
 
-void CustomTensorUtils::ShareDataTo(const Tensor &src, void *dst) {
+int64_t Tensor::size() const {
+  GET_CASTED_TENSOR;
+  return tensor->numel();
+}
+
+namespace framework {
+
+void CustomTensorUtils::ShareDataTo(const paddle::Tensor &src, void *dst) {
   static_cast<framework::LoDTensor *>(dst)->ShareDataWith(
       *static_cast<framework::LoDTensor *>(src.tensor_.get()));
 }
 
-void CustomTensorUtils::ShareDataFrom(void *src, const Tensor &dst) {
+void CustomTensorUtils::ShareDataFrom(void *src, const paddle::Tensor &dst) {
   if (!dst.tensor_) {
     dst.tensor_ = std::make_shared<framework::LoDTensor>();
   }
@@ -350,8 +357,5 @@ void CustomTensorUtils::ShareDataFrom(void *src, const Tensor &dst) {
   tensor->ShareDataWith(*static_cast<framework::LoDTensor *>(src));
 }
 
-int64_t Tensor::size() const {
-  GET_CASTED_TENSOR;
-  return tensor->numel();
-}
+}  // namespace framework
 }  // namespace paddle
