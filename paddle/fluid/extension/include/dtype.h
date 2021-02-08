@@ -32,7 +32,7 @@ enum DataType {
   INT16,
   UINT8,
   INT8,
-  // TODO(Superjomn) support more data types if needed.
+  // TODO(JiabinYang) support more data types if needed.
 };
 
 }  // namespace paddle

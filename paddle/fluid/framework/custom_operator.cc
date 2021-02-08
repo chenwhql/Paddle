@@ -126,7 +126,6 @@ proto::VarType::Type ConvertEnumDTypeToInnerDType(
       return proto::VarType::INT32;
     case paddle::DataType::INT64:
       return proto::VarType::INT64;
-    // TODO(chenweihang):
     default:
       PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
   }
@@ -157,8 +156,6 @@ paddle::DataType ConvertInnerDTypeToEnumDType(
       return paddle::DataType::UINT8;
     case proto::VarType::INT16:
       return paddle::DataType::INT16;
-
-    // TODO(chenweihang):
     default:
       PADDLE_THROW(platform::errors::Unimplemented("Unsupported data type."));
   }

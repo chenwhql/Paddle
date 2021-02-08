@@ -28,21 +28,24 @@ class Tensor {
   explicit Tensor(const PlaceType& place);
   /// \brief Reset the shape of the tensor.
   /// Generally it's only used for the input tensor.
-  /// Reshape must be called before calling mutable_data() or copy_from_cpu()
+  /// Reshape must be called before calling
+  /// mutable_data() or copy_from_cpu()
   /// \param shape The shape to set.
   void reshape(const std::vector<int>& shape);
 
-  /// \brief Get the memory pointer in CPU or GPU with specific data type.
+  /// \brief Get the memory pointer in CPU or GPU with
+  /// specific data type.
   /// Please Reshape the tensor first before call this.
   /// It's usually used to get input data pointer.
-  /// \param place The place of the tensor this will override the original place
-  /// of current tensor.
+  /// \param place The place of the tensor this will
+  /// override the original place of current tensor.
   template <typename T>
   T* mutable_data(const PlaceType& place);
 
-  /// \brief Get the memory pointer in CPU or GPU with specific data type.
-  /// Please Reshape the tensor first before call this.
-  /// It's usually used to get input data pointer.
+  /// \brief Get the memory pointer in CPU or GPU with
+  /// specific data type. Please Reshape the tensor
+  /// first before call this.It's usually used to get
+  /// input data pointer.
   template <typename T>
   T* mutable_data();
 
@@ -54,13 +57,15 @@ class Tensor {
 
   /// \brief Copy the host memory to tensor data.
   /// It's usually used to set the input tensor data.
-  /// \param data The pointer of the data, from which the tensor will copy.
+  /// \param data The pointer of the data, from which
+  /// the tensor will copy.
   template <typename T>
   Tensor copy_to_gpu();
 
   /// \brief Copy the tensor data to the host memory.
   /// It's usually used to get the output tensor data.
-  /// \param[out] data The tensor will copy the data to the address.
+  /// \param[out] data The tensor will copy the data to
+  /// the address.
   template <typename T>
   Tensor copy_to_cpu();
 
