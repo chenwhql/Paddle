@@ -74,6 +74,8 @@ class ClipByNormKernel : public framework::OpKernel<T> {
                                 "Input(X) of ClipByNormOp should not be null. "
                                 "Please check if it is created correctly."));
 
+    VLOG(0) << "ClipByNorm Input Tensor: " << (*input);
+
     auto x = EigenVector<T>::Flatten(*input);
     auto out = EigenVector<T>::Flatten(*output);
     auto x_norm = x.square().sum().sqrt();

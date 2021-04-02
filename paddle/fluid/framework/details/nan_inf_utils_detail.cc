@@ -367,6 +367,74 @@ void CheckVarHasNanOrInf(const std::string& op_type,
   tensor_check<platform::CPUDeviceContext>(op_type, var_name, *tensor, place);
 }
 
+void CheckVarHasNanOrInf(const std::string& op_type,
+                         const std::string& var_name,
+                         const framework::Variable* var,
+                         const platform::Place& place) {
+  PADDLE_ENFORCE_NOT_NULL(
+      var, platform::errors::NotFound("In op=%s, can't find var:%s", op_type,
+                                      var_name));
+
+  const Tensor* tensor{nullptr};
+  if (var->IsType<framework::LoDTensor>()) {
+    tensor = &var->Get<framework::LoDTensor>();
+  } else if (var->IsType<framework::SelectedRows>()) {
+    tensor = &var->Get<framework::SelectedRows>().value();
+  } else {
+    VLOG(10) << var_name << " var_name need not to check";
+    return;
+  }
+
+  if (tensor->memory_size() == 0) {
+    VLOG(10) << var_name << " var_name need not to check, size == 0";
+    return;
+  }
+
+  VLOG(10) << "begin check " << op_type << " var_name:" << var_name
+           << ", place:" << tensor->place() << ", numel:" << tensor->numel();
+
+  if (platform::is_gpu_place(tensor->place())) {
+#ifdef PADDLE_WITH_CUDA
+    tensor_check<platform::CUDADeviceContext>(op_type, var_name, *tensor,
+                                              place);
+#else
+    PADDLE_THROW(platform::errors::PreconditionNotMet(
+        "Tensor[%s] use gpu place. PaddlePaddle must compile with GPU.",
+        var_name));
+#endif
+    return;
+  } else if (platform::is_xpu_place(tensor->place())) {
+#ifdef PADDLE_WITH_XPU
+    if (tensor->type() != proto::VarType::FP32) {
+      return;
+    }
+
+    float* cpu_data = new float[tensor->numel()];
+    xpu_memcpy(cpu_data, tensor->data<float>(), tensor->numel() * sizeof(float),
+               XPU_DEVICE_TO_HOST);
+    bool flag = false;
+    for (int i = 0; i < tensor->numel(); i++) {
+      if (isnan(cpu_data[i]) || isinf(cpu_data[i])) {
+        flag = true;
+        break;
+      }
+    }
+    delete[] cpu_data;
+    PADDLE_ENFORCE_NE(
+        flag, true,
+        platform::errors::Fatal("Operator %s output Tensor %s contains Inf.",
+                                op_type, var_name));
+#else
+    PADDLE_THROW(platform::errors::PreconditionNotMet(
+        "Tensor[%s] use xpu place. PaddlePaddle must compile with XPU.",
+        var_name));
+#endif
+    return;
+  }
+
+  tensor_check<platform::CPUDeviceContext>(op_type, var_name, *tensor, place);
+}
+
 bool IsSkipOp(const framework::OperatorBase& op) {
   if (op_type_nan_inf_white_list().count(op.Type()) != 0) return true;
 
